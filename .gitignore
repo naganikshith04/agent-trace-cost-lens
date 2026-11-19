@@ -8,3 +8,4 @@ __pycache__/
 eval_results.json
 node_modules/
 .next/
+.deps/

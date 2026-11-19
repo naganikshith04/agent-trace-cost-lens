@@ -67,9 +67,11 @@ OLLAMA_MODEL=llama3.2 python scripts/eval_tagger.py
 
 The pytest suite tests the harness with a mocked LLM and never contacts Ollama.
 
+Note: step error text is untrusted and is interpolated into the tagger prompt, so it is a low-risk prompt-injection surface. The reply is only used as a tag, and `parse_tag` restricts it to the five tags or `unknown`.
+
 ## Limitations
 
-- In v1 only one JSON format is supported (`ollama-agent-trace` version `1`); other formats are rejected.
+- Note that only one JSON format is supported in v1 (`ollama-agent-trace` version `1`); other formats are rejected.
 - Steps must list parents before children; timestamps need a timezone.
 - The failure tagger is a Python API plus evaluation script; it is not yet wired into the API or UI.
 - No authentication; intended for local use only.
