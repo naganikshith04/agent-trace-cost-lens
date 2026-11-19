@@ -48,7 +48,7 @@ Validation runs fully before any write, and inserts happen in one transaction, s
 
 ## Beyond the original
 
-The inspiration, Faros Desktop (Show HN), is a local app to see your AI traces and extend your usage. This project goes in a different direction and aims to be more useful for people running their own local agents:
+The inspiration was a Show HN post about Faros Desktop, a local app for viewing AI traces (not verified here; see the original post). This project goes in a different direction and aims to be more useful for people running their own local agents:
 
 - **Evaluated failure tagger**: failed steps can be classified into five causes by a local Ollama model, and the tagger ships with a reproducible accuracy evaluation on 40 labeled cases rather than unmeasured claims.
 - **Strict, documented schema** with atomic, idempotent import: re-importing is safe and invalid files are rejected with a clear message and no partial writes.
