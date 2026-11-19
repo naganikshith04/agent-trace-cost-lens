@@ -1,0 +1,23 @@
+{
+  "format": "ollama-agent-trace",
+  "version": "1",
+  "run_id": "run-001",
+  "model": "llama3.2",
+  "task": "Research and summarize a topic",
+  "started_at": "2025-01-01T10:00:00+00:00",
+  "steps": [
+    {"step_id": "s1", "parent_id": null, "name": "plan", "kind": "agent",
+     "started_at": "2025-01-01T10:00:00+00:00", "ended_at": "2025-01-01T10:00:10+00:00",
+     "prompt_tokens": 0, "completion_tokens": 0, "status": "ok"},
+    {"step_id": "s2", "parent_id": "s1", "name": "draft_plan", "kind": "llm",
+     "started_at": "2025-01-01T10:00:00+00:00", "ended_at": "2025-01-01T10:00:03+00:00",
+     "prompt_tokens": 120, "completion_tokens": 80, "status": "ok"},
+    {"step_id": "s3", "parent_id": "s1", "name": "web_search", "kind": "tool",
+     "started_at": "2025-01-01T10:00:03+00:00", "ended_at": "2025-01-01T10:00:09+00:00",
+     "prompt_tokens": 0, "completion_tokens": 0, "status": "error",
+     "error": "tool failed: connection refused"},
+    {"step_id": "s4", "parent_id": "s1", "name": "summarize", "kind": "llm",
+     "started_at": "2025-01-01T10:00:09+00:00", "ended_at": "2025-01-01T10:00:10+00:00",
+     "prompt_tokens": 200, "completion_tokens": 50, "status": "ok"}
+  ]
+}

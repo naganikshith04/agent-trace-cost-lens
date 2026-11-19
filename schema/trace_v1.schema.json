@@ -1,0 +1,10 @@
+{
+  "format": "ollama-agent-trace",
+  "version": "1",
+  "description": "Single supported trace format (v1). Timestamps are timezone-aware ISO 8601.",
+  "run_required": ["format", "version", "run_id", "model", "started_at", "steps"],
+  "step_required": ["step_id", "name", "kind", "started_at", "ended_at", "prompt_tokens", "completion_tokens", "status"],
+  "step_optional": ["parent_id", "error", "input", "output"],
+  "kinds": ["agent", "llm", "tool"],
+  "statuses": ["ok", "error"]
+}

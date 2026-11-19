@@ -1,0 +1,17 @@
+body { font-family: system-ui, sans-serif; margin: 0; background: #fafafa; color: #222; }
+main { max-width: 800px; margin: 0 auto; padding: 1rem; }
+select { width: 100%; padding: 0.5rem; margin-bottom: 1rem; }
+.cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 0.5rem; margin-bottom: 1rem; }
+.cards div { background: #fff; border: 1px solid #ddd; border-radius: 6px; padding: 0.5rem; }
+.cards b { display: block; font-size: 1.2rem; }
+.tree, .tree ul { list-style: none; padding-left: 1rem; border-left: 1px dashed #ccc; }
+.tree { padding-left: 0; border: 0; }
+.step { background: #fff; border: 1px solid #ddd; border-radius: 6px; padding: 0.4rem 0.6rem; margin: 0.3rem 0; overflow-wrap: anywhere; }
+.step.slow { border-color: #d98a00; background: #fff6e0; }
+.step.failed { border-color: #c62828; background: #fdeaea; }
+.kind { color: #666; font-size: 0.8rem; margin-left: 0.3rem; }
+.meta { display: block; font-size: 0.8rem; color: #555; }
+.badge { font-size: 0.7rem; font-weight: bold; margin-right: 0.3rem; }
+.err { color: #c62828; font-size: 0.85rem; }
+.error { color: #c62828; }
+.empty { color: #666; }

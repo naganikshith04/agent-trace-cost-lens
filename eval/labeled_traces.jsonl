@@ -1,0 +1,40 @@
+{"id": "t01", "step_name": "web_search", "kind": "tool", "error": "request timed out after 30s waiting for response", "label": "timeout"}
+{"id": "t02", "step_name": "draft_answer", "kind": "llm", "error": "deadline exceeded: generation did not finish within 120 seconds", "label": "timeout"}
+{"id": "t03", "step_name": "fetch_page", "kind": "tool", "error": "ReadTimeout: the read operation timed out", "label": "timeout"}
+{"id": "t04", "step_name": "plan", "kind": "agent", "error": "step exceeded max wall-clock budget of 60s and was cancelled", "label": "timeout"}
+{"id": "t05", "step_name": "summarize", "kind": "llm", "error": "context deadline exceeded while streaming tokens", "label": "timeout"}
+{"id": "t06", "step_name": "db_query", "kind": "tool", "error": "query canceled: statement timeout reached", "label": "timeout"}
+{"id": "t07", "step_name": "run_tests", "kind": "tool", "error": "process killed after 300s without exit (timeout)", "label": "timeout"}
+{"id": "t08", "step_name": "embed_docs", "kind": "tool", "error": "operation timed out connecting to embedding service", "label": "timeout"}
+{"id": "t09", "step_name": "read_file", "kind": "tool", "error": "FileNotFoundError: no such file or directory: notes/todo.md", "label": "tool_error"}
+{"id": "t10", "step_name": "web_search", "kind": "tool", "error": "HTTP 503 Service Unavailable from search API", "label": "tool_error"}
+{"id": "t11", "step_name": "calculator", "kind": "tool", "error": "ZeroDivisionError: division by zero", "label": "tool_error"}
+{"id": "t12", "step_name": "git_status", "kind": "tool", "error": "command exited with status 128: not a git repository", "label": "tool_error"}
+{"id": "t13", "step_name": "send_email", "kind": "tool", "error": "tool failed: connection refused by smtp host", "label": "tool_error"}
+{"id": "t14", "step_name": "write_file", "kind": "tool", "error": "PermissionError: access denied writing to output directory", "label": "tool_error"}
+{"id": "t15", "step_name": "unknown_tool_call", "kind": "tool", "error": "tool 'weather_lookup' is not registered with the agent", "label": "tool_error"}
+{"id": "t16", "step_name": "sql_exec", "kind": "tool", "error": "syntax error near 'FORM' in SQL statement", "label": "tool_error"}
+{"id": "t17", "step_name": "extract_fields", "kind": "llm", "error": "model response is not valid JSON: Expecting ',' delimiter at line 4", "label": "invalid_output"}
+{"id": "t18", "step_name": "classify", "kind": "llm", "error": "output failed schema validation: missing required key 'category'", "label": "invalid_output"}
+{"id": "t19", "step_name": "pick_tool", "kind": "llm", "error": "could not parse tool call from model reply; got free text", "label": "invalid_output"}
+{"id": "t20", "step_name": "answer", "kind": "llm", "error": "empty response returned by model", "label": "invalid_output"}
+{"id": "t21", "step_name": "rewrite_query", "kind": "llm", "error": "expected a list of 3 queries but the reply contained only prose", "label": "invalid_output"}
+{"id": "t22", "step_name": "score", "kind": "llm", "error": "value 'high' is not a number between 0 and 1", "label": "invalid_output"}
+{"id": "t23", "step_name": "format_report", "kind": "llm", "error": "truncated JSON: unexpected end of output", "label": "invalid_output"}
+{"id": "t24", "step_name": "tool_args", "kind": "llm", "error": "arguments do not match the function signature: unexpected field 'path2'", "label": "invalid_output"}
+{"id": "t25", "step_name": "summarize_repo", "kind": "llm", "error": "prompt is too long: 9120 tokens exceeds the context window of 8192", "label": "context_overflow"}
+{"id": "t26", "step_name": "chat_turn", "kind": "llm", "error": "input truncated: num_ctx limit reached", "label": "context_overflow"}
+{"id": "t27", "step_name": "long_doc_qa", "kind": "llm", "error": "maximum context length exceeded by 1500 tokens", "label": "context_overflow"}
+{"id": "t28", "step_name": "analyze_logs", "kind": "llm", "error": "request has too many tokens for the model's context size", "label": "context_overflow"}
+{"id": "t29", "step_name": "memory_recall", "kind": "llm", "error": "conversation history no longer fits in the context window", "label": "context_overflow"}
+{"id": "t30", "step_name": "merge_notes", "kind": "llm", "error": "token limit exceeded: 16500 > 16384", "label": "context_overflow"}
+{"id": "t31", "step_name": "review_diff", "kind": "llm", "error": "prompt length 40211 exceeds max sequence length", "label": "context_overflow"}
+{"id": "t32", "step_name": "compare_docs", "kind": "llm", "error": "context length overflow: cannot append more messages", "label": "context_overflow"}
+{"id": "t33", "step_name": "draft_answer", "kind": "llm", "error": "model 'llama9' not found, try pulling it first", "label": "model_unavailable"}
+{"id": "t34", "step_name": "plan", "kind": "llm", "error": "connection refused: is the Ollama server running?", "label": "model_unavailable"}
+{"id": "t35", "step_name": "classify", "kind": "llm", "error": "failed to load model: not enough memory to load weights", "label": "model_unavailable"}
+{"id": "t36", "step_name": "answer", "kind": "llm", "error": "404 from /api/generate: model does not exist", "label": "model_unavailable"}
+{"id": "t37", "step_name": "summarize", "kind": "llm", "error": "model is still loading, server not ready", "label": "model_unavailable"}
+{"id": "t38", "step_name": "extract_fields", "kind": "llm", "error": "pull model manifest: file does not exist for tag 'qwen-x:7b'", "label": "model_unavailable"}
+{"id": "t39", "step_name": "rewrite_query", "kind": "llm", "error": "could not reach the inference host; no route to host", "label": "model_unavailable"}
+{"id": "t40", "step_name": "score", "kind": "llm", "error": "runner process crashed while loading the model", "label": "model_unavailable"}
