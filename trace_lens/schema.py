@@ -30,7 +30,8 @@ def parse_ts(value: Any, where: str) -> datetime:
     if not isinstance(value, str):
         raise TraceValidationError(f"{where}: timestamp must be a string")
     try:
-        ts = datetime.fromisoformat(value)
+        # "Z" is accepted by fromisoformat only on Python >= 3.11; normalise it for 3.8-3.10.
+        ts = datetime.fromisoformat(value[:-1] + "+00:00" if value.endswith(("Z", "z")) else value)
     except ValueError as exc:
         raise TraceValidationError(f"{where}: invalid ISO 8601 timestamp {value!r}") from exc
     if ts.tzinfo is None:

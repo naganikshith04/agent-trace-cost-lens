@@ -9,31 +9,41 @@ so no parent/child tree or tool steps are produced.
 from __future__ import annotations
 
 import json
-from datetime import datetime, timedelta
+import re
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 from .schema import SUPPORTED_FORMAT, SUPPORTED_VERSION, TraceValidationError
+
+_TS_RE = re.compile(
+    r"^(\d{4})-(\d{2})-(\d{2})[T ](\d{2}):(\d{2}):(\d{2})(?:\.(\d+))?"
+    r"(Z|z|[+-]\d{2}:\d{2})?$"
+)
 
 
 def _ts(value: object, where: str) -> datetime:
     if not isinstance(value, str):
         raise TraceValidationError(f"{where}: 'created_at' must be a string")
-    text = value.strip()
-    if text.endswith("Z"):
-        text = text[:-1] + "+00:00"
-    if "." in text:  # Ollama emits nanoseconds; datetime accepts at most microseconds
-        head, rest = text.split(".", 1)
-        n_digits = len(rest) - len(rest.lstrip("0123456789"))
-        digits = rest[:n_digits]
-        tail = rest[n_digits:]
-        text = f"{head}.{digits[:6].ljust(6, '0')}{tail}"
+    # Parsed with an explicit pattern (not datetime.fromisoformat) so the result does not
+    # depend on the Python version: Ollama emits 1-9 fractional digits and a "Z" suffix.
+    m = _TS_RE.match(value.strip())
+    if not m:
+        raise TraceValidationError(f"{where}: invalid created_at {value!r}")
+    year, month, day, hour, minute, second, frac, zone = m.groups()
+    if zone is None:
+        raise TraceValidationError(f"{where}: created_at must include a timezone")
+    if zone in ("Z", "z"):
+        tz = timezone.utc
+    else:
+        sign = -1 if zone[0] == "-" else 1
+        offset = timedelta(hours=int(zone[1:3]), minutes=int(zone[4:6]))
+        tz = timezone(sign * offset)
+    micro = int((frac or "").ljust(6, "0")[:6])
     try:
-        ts = datetime.fromisoformat(text)
+        return datetime(int(year), int(month), int(day), int(hour), int(minute),
+                        int(second), micro, tzinfo=tz)
     except ValueError as exc:
         raise TraceValidationError(f"{where}: invalid created_at {value!r}") from exc
-    if ts.tzinfo is None:
-        raise TraceValidationError(f"{where}: created_at must include a timezone")
-    return ts
 
 
 def convert_ollama_log(path: str | Path, run_id: str) -> dict:
@@ -65,8 +75,8 @@ def convert_ollama_log(path: str | Path, run_id: str) -> dict:
             "parent_id": None,
             "name": "chat",
             "kind": "llm",
-            "started_at": start.isoformat(),
-            "ended_at": end.isoformat(),
+            "started_at": start.isoformat(timespec="microseconds"),
+            "ended_at": end.isoformat(timespec="microseconds"),
             "prompt_tokens": int(obj.get("prompt_eval_count") or 0),
             "completion_tokens": int(obj.get("eval_count") or 0),
             "status": "error" if err else "ok",

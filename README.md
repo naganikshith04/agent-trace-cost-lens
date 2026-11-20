@@ -14,6 +14,7 @@ Built with AI assistance.
 ## Quickstart
 
 ```bash
+# Python 3.12 (the version CI pins; the timestamp parsing is version-independent)
 python -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
 pytest                                           # no network or Ollama needed
@@ -62,21 +63,19 @@ The tagger (`trace_lens/tagger.py`) sends the step name, kind and error message 
 
 ### Result
 
-Measured run with model `llama3.2`: **accuracy 0.825 (33/40)**, details in `eval_results.json`.
+Measured run with model `llama3.2` and the current tagger prompt (the one with the fuller `invalid_output` definition and four illustrative examples): **accuracy 0.900 (36/40)**, details in `eval_results.json`.
 
 | gold tag | correct |
 | --- | --- |
 | timeout | 7/8 |
-| tool_error | 7/8 |
-| invalid_output | 4/8 |
+| tool_error | 8/8 |
+| invalid_output | 8/8 |
 | context_overflow | 8/8 |
-| model_unavailable | 7/8 |
+| model_unavailable | 5/8 |
 
-**Limit of this number:** the 40 items are hand-written, synthetic error strings, and the tagger only sees the step name, kind and error text. The 82.5% therefore measures how well the model reads invented messages, not how well it diagnoses real agent failures.
+**Limit of this number:** the 40 items are hand-written, synthetic error strings, and the tagger only sees the step name, kind and error text. The 90% therefore measures how well the model reads invented messages, not how well it diagnoses real agent failures. The prompt was extended after seeing the weak `invalid_output` class on this same set, so the improvement on these 40 items is partly tuned to them; the held-out set below is the fairer check.
 
-Prompt change since these runs: the tagger prompt was afterwards extended with a fuller `invalid_output` definition and four illustrative examples, aimed at the weak `invalid_output` class. All numbers in this section were measured with the earlier prompt; the new prompt has not been re-measured. The tagger still sees only the step name, kind and error text, not parent-step context.
-
-The 7 misses, by item id (gold → predicted): `invalid_output` is the weak class (4 of 8 wrong). t20 "empty response returned by model" and t23 "truncated JSON: unexpected end of output" → `timeout`; t19 "could not parse tool call from model reply; got free text" and t24 "arguments do not match the function signature: unexpected field 'path2'" → `tool_error`. The other three: t05 `timeout` ("context deadline exceeded while streaming tokens") → `context_overflow`; t14 `tool_error` ("PermissionError: access denied writing to output directory") → `timeout`; t34 `model_unavailable` ("connection refused: is the Ollama server running?", an unreachable server rather than a model-load failure) → `tool_error`. In practice, malformed model output that mentions tools or truncation gets blamed on the tool or on time, so treat `invalid_output` tags as less reliable.
+The 4 misses, by item id (gold → predicted), from `eval_results.json`: t05 `timeout` → `context_overflow`; t33 `model_unavailable` → `tool_error`; t36 `model_unavailable` → `timeout`; t38 `model_unavailable` → `tool_error`. `model_unavailable` is now the weakest class (3 of 8 wrong), so treat that tag as less reliable. The tagger still sees only the step name, kind and error text, not parent-step context.
 
 ### Baseline and hard cases
 
@@ -84,11 +83,11 @@ The 7 misses, by item id (gold → predicted): `invalid_output` is the weak clas
 
 | set | `llama3.2` | keyword rules |
 | --- | --- | --- |
-| 40 labeled items | 33/40 (0.825) | 33/40 (0.825) |
+| 40 labeled items | 36/40 (0.900) | 33/40 (0.825) |
 | 8 hard cases | 5/8 | 3/8 |
-| 32 held-out items (`eval/heldout.jsonl`) | 25/32 (0.78) | 14/32 (0.44) |
+| 32 held-out items (`eval/heldout.jsonl`) | 29/32 (0.91) | 14/32 (0.44) |
 
-**Conclusion:** the model only ties the keyword rules on the 40 tuned items, but beats them by a wide margin on unseen phrasing (25/32 vs 14/32 held-out). The held-out set was written after the keyword rules were frozen, so it is the fairer comparison and the strongest result here. The 8 hard cases point the same way (5/8 vs 3/8) but are too few to support a claim alone. Held-out counts are saved in `eval_heldout_results.json` (aggregates only; per-item predictions were not captured, so the 25/32 vs 14/32 figures cannot yet be audited item by item). `scripts/eval_tagger.py` now writes per-item predictions for both the model (`eval_heldout_results.json`) and the keyword rules (`eval_heldout_keyword_results.json`) on its next run, which will replace the aggregate-only file. The held-out items are still hand-written, so this is not a measure on real agent failures.
+**Conclusion:** the model beats the keyword rules on the 40 tuned items (36/40 vs 33/40) and by a wide margin on unseen phrasing (29/32 vs 14/32 held-out). The held-out set was written after the keyword rules were frozen, so it is the fairer comparison and the strongest result here. The 8 hard cases point the same way (5/8 vs 3/8) but are too few to support a claim alone. The held-out counts are saved in `eval_heldout_results.json` as aggregates only (the committed file was updated by hand to the 29/32 figure from the latest run output), so the held-out figures cannot yet be audited item by item: per-item predictions were not captured in that run. `scripts/eval_tagger.py` writes per-item predictions for both the model (`eval_heldout_results.json`) and the keyword rules (`eval_heldout_keyword_results.json`) on its next run, which will replace the aggregate-only file. The held-out items are still hand-written, so this is not a measure on real agent failures.
 
 **Caveat on the baseline:** the keyword rules were written with the labeled set in view (words such as "budget", "refused" and "inference host" come from those strings), so the baseline score is probably inflated. The rule order is also brittle: the bare word "model" maps to `model_unavailable`, so "model returned empty JSON" is tagged `model_unavailable` (pinned in `tests/test_evaluation.py` as a known misfire).
 
@@ -100,7 +99,7 @@ OLLAMA_MODEL=llama3.2 python scripts/eval_tagger.py
 
 The pytest suite tests the harness and the `?method=llm` API path with a mocked LLM and never contacts Ollama.
 
-**What the UI shows:** the Failure summary panel has a **Keyword / LLM** toggle. Keyword (offline rules) is the default; LLM calls the local Ollama model through `GET /runs/{id}/tags?method=llm`, and shows a message if Ollama is not reachable. Because the held-out results favour the model (25/32 vs 14/32), use the **LLM** toggle when Ollama is running; the keyword default is kept only because it works offline and instantly. The keyword rules are the weaker tagger on unseen text, and the rule order is not fixed here: changing it would invalidate the measured keyword scores above.
+**What the UI shows:** the Failure summary panel has a **Keyword / LLM** toggle. Keyword (offline rules) is the default; LLM calls the local Ollama model through `GET /runs/{id}/tags?method=llm`, and shows a message if Ollama is not reachable. Because the held-out results favour the model (29/32 vs 14/32), use the **LLM** toggle when Ollama is running; the keyword default is kept only because it works offline and instantly. The keyword rules are the weaker tagger on unseen text, and the rule order is not fixed here: changing it would invalidate the measured keyword scores above.
 
 The UI states can be previewed without data: open the page with `?state=loading`, `?state=empty` or `?state=error`. The page logic (loading, empty, error with Retry, and the tagging toggle) is covered by vitest tests with a mocked `fetch` in `web/tests/page.test.jsx`.
 
