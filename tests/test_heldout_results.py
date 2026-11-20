@@ -1,39 +1,25 @@
-"""Ties the committed held-out result files to per-item predictions.
+"""Offline checks that the held-out and hard-case sets can be scored per item.
 
-The model file is currently aggregate-only (see README), so its per-item check
-is skipped until scripts/eval_tagger.py is re-run and the per-item files are
-committed. Once they exist, the counts are recomputed here and must match.
+No model results are committed for these sets (see README), so these tests only
+exercise the deterministic keyword baseline and never skip.
 """
-import json
-from pathlib import Path
-
-import pytest
-
-from trace_lens.evaluation import load_heldout
-
-ROOT = Path(__file__).resolve().parent.parent
-MODEL_FILE = ROOT / "eval_heldout_results.json"
-KEYWORD_FILE = ROOT / "eval_heldout_keyword_results.json"
+from trace_lens.evaluation import evaluate, load_hard_cases, load_heldout
+from trace_lens.tagger import keyword_tag
 
 
-def _check_per_item(path):
-    if not path.exists():
-        pytest.skip(f"{path.name} not committed yet")
-    data = json.loads(path.read_text(encoding="utf-8"))
-    if "predictions" not in data:
-        pytest.skip(f"{path.name} is aggregate-only; per-item predictions not committed")
-    held = {it["id"]: it["label"] for it in load_heldout()}
-    preds = data["predictions"]
-    assert {p["id"] for p in preds} == set(held)
-    assert all(p["gold"] == held[p["id"]] for p in preds)
-    recomputed = sum(1 for p in preds if p["predicted"] == p["gold"])
-    assert data["total"] == len(held)
-    assert data["correct"] == recomputed
+def _check(dataset):
+    result = evaluate(keyword_tag, dataset=dataset)
+    gold = {it["id"]: it["label"] for it in dataset}
+    preds = result["predictions"]
+    assert {p["id"] for p in preds} == set(gold)
+    assert all(p["gold"] == gold[p["id"]] for p in preds)
+    assert result["total"] == len(dataset)
+    assert result["correct"] == sum(1 for p in preds if p["predicted"] == p["gold"])
 
 
-def test_model_heldout_counts_match_per_item_predictions():
-    _check_per_item(MODEL_FILE)
+def test_keyword_baseline_scores_heldout_per_item():
+    _check(load_heldout())
 
 
-def test_keyword_heldout_counts_match_per_item_predictions():
-    _check_per_item(KEYWORD_FILE)
+def test_keyword_baseline_scores_hard_cases_per_item():
+    _check(load_hard_cases())

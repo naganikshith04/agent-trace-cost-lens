@@ -84,10 +84,10 @@ The 4 misses, by item id (gold → predicted), from `eval_results.json`: t05 `ti
 | set | `llama3.2` | keyword rules |
 | --- | --- | --- |
 | 40 labeled items | 36/40 (0.900) | 33/40 (0.825) |
-| 8 hard cases | 5/8 | 3/8 |
-| 32 held-out items (`eval/heldout.jsonl`) | 29/32 (unaudited) | 14/32 (unaudited) |
+| 8 hard cases (`eval/hard_cases.jsonl`) | not committed | not committed |
+| 32 held-out items (`eval/heldout.jsonl`) | not committed | not committed |
 
-**Conclusion:** the model beats the keyword rules on the 40 tuned items (36/40 vs 33/40). The 8 hard cases point the same way (5/8 vs 3/8) but are too few to support a claim alone. The held-out figures (29/32 model vs 14/32 keyword) come from the printed output of `scripts/eval_tagger.py`, but they are **not audited and should not be treated as a verified result**: `eval_heldout_results.json` is committed as aggregate counts only and was edited by hand, with no per-item predictions. `tests/test_heldout_results.py` recomputes the counts from per-item predictions, but it skips for this file until they are committed. To make the held-out numbers auditable, re-run `scripts/eval_tagger.py`; it writes per-item predictions for the model (`eval_heldout_results.json`) and the keyword rules (`eval_heldout_keyword_results.json`), which the test will then check. The held-out items are hand-written, so even a verified score is not a measure on real agent failures.
+**Conclusion:** the model beats the keyword rules on the 40 tuned items (36/40 vs 33/40), the only comparison backed by a committed per-item file (`eval_results.json` for the model; the keyword baseline is deterministic and reproducible offline). The hard-case and held-out sets exist and `scripts/eval_tagger.py` scores both, but no per-item predictions for them are committed, so this README makes no claim about their results. Earlier hand-copied counts for those sets were removed because they could not be audited. Re-run the script with Ollama to write `eval_hard_results.json`, `eval_heldout_results.json` and `eval_heldout_keyword_results.json`. `tests/test_heldout_results.py` checks offline that the keyword baseline scores both sets per item. The items are hand-written, so even a verified score would not measure real agent failures.
 
 **Caveat on the baseline:** the keyword rules were written with the labeled set in view (words such as "budget", "refused" and "inference host" come from those strings), so the baseline score is probably inflated. The rule order is also brittle: the bare word "model" maps to `model_unavailable`, so "model returned empty JSON" is tagged `model_unavailable` (pinned in `tests/test_evaluation.py` as a known misfire).
 
@@ -99,7 +99,7 @@ OLLAMA_MODEL=llama3.2 python scripts/eval_tagger.py
 
 The pytest suite tests the harness and the `?method=llm` API path with a mocked LLM and never contacts Ollama.
 
-**What the UI shows:** the Failure summary panel has a **Keyword / LLM** toggle. Keyword (offline rules) is the default; LLM calls the local Ollama model through `GET /runs/{id}/tags?method=llm`, and shows a message if Ollama is not reachable. The keyword default is kept because it works offline and instantly; the **LLM** toggle is available when Ollama is running (the model scored higher on the 40 labeled items, 36/40 vs 33/40; the held-out comparison is still unaudited). The keyword rule order is not fixed here: changing it would invalidate the measured keyword scores above.
+**What the UI shows:** the Failure summary panel has a **Keyword / LLM** toggle. Keyword (offline rules) is the default; LLM calls the local Ollama model through `GET /runs/{id}/tags?method=llm`, and shows a message if Ollama is not reachable. The keyword default is kept because it works offline and instantly; the **LLM** toggle is available when Ollama is running (the model scored higher on the 40 labeled items, 36/40 vs 33/40). The keyword rule order is not fixed here: changing it would invalidate the measured keyword scores above.
 
 The UI states can be previewed without data: open the page with `?state=loading`, `?state=empty` or `?state=error`. The page logic (loading, empty, error with Retry, and the tagging toggle) is covered by vitest tests with a mocked `fetch` in `web/tests/page.test.jsx`.
 

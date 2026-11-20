@@ -25,7 +25,10 @@ function offsetMs(step, originMs) {
 
 function Node({ node, slowMs, totalMs, tags, index, originMs }) {
   const failed = node.status === "error";
-  const slow = node.duration_ms > slowMs;
+  // Parents are judged by self time (own duration minus children) so a step is
+  // not flagged SLOW only because its children are.
+  const childMs = node.children.reduce((sum, c) => sum + (c.duration_ms || 0), 0);
+  const slow = node.duration_ms - childMs > slowMs;
   const cls = ["step", failed ? "failed" : "", slow ? "slow" : ""].filter(Boolean).join(" ");
   const rawPct = totalMs > 0 ? (node.duration_ms / totalMs) * 100 : 0;
   const left = totalMs > 0 ? Math.min(100, (offsetMs(node, originMs) / totalMs) * 100) : 0;
