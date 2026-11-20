@@ -43,6 +43,16 @@ def test_keyword_baseline_runs_offline():
     assert len(hard) == 8 and {h["id"] for h in hard}.isdisjoint(i["id"] for i in load_dataset())
 
 
+def test_keyword_rule_order_known_misfire():
+    from trace_lens.tagger import keyword_tag
+
+    # Documents a known weakness: the bare word "model" is matched before the
+    # JSON/empty-output rule, so malformed model output is tagged model_unavailable.
+    assert keyword_tag({"error": "model returned empty JSON"}) == "model_unavailable"
+    # Without the word "model" the invalid_output rule applies as intended.
+    assert keyword_tag({"error": "returned empty JSON"}) == "invalid_output"
+
+
 def test_parse_tag():
     assert parse_tag("  Timeout.\n") == "timeout"
     assert parse_tag("I think it is context_overflow") == "context_overflow"

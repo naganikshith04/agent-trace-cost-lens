@@ -74,11 +74,20 @@ Measured run with model `llama3.2`: **accuracy 0.825 (33/40)**, details in `eval
 
 **Limit of this number:** the 40 items are hand-written, synthetic error strings, and the tagger only sees the step name, kind and error text. The 82.5% therefore measures how well the model reads invented messages, not how well it diagnoses real agent failures.
 
-The 7 misses: `invalid_output` is the weak class (4 of 8 wrong: two tagged `timeout`, two tagged `tool_error`; e.g. "empty response returned by model" and "truncated JSON: unexpected end of output" read as timeouts, "could not parse tool call" and "arguments do not match the function signature" read as tool errors). The other three: a timeout ("context deadline exceeded while streaming tokens") tagged `context_overflow`, a permission error tagged `timeout`, and a model-load failure ("connection refused: is the Ollama server running?") tagged `tool_error`. In practice, malformed model output that mentions tools or truncation gets blamed on the tool or on time, so treat `invalid_output` tags as less reliable.
+The 7 misses, by item id (gold → predicted): `invalid_output` is the weak class (4 of 8 wrong). t20 "empty response returned by model" and t23 "truncated JSON: unexpected end of output" → `timeout`; t19 "could not parse tool call from model reply; got free text" and t24 "arguments do not match the function signature: unexpected field 'path2'" → `tool_error`. The other three: t05 `timeout` ("context deadline exceeded while streaming tokens") → `context_overflow`; t14 `tool_error` ("PermissionError: access denied writing to output directory") → `timeout`; t34 `model_unavailable` ("connection refused: is the Ollama server running?", an unreachable server rather than a model-load failure) → `tool_error`. In practice, malformed model output that mentions tools or truncation gets blamed on the tool or on time, so treat `invalid_output` tags as less reliable.
 
 ### Baseline and hard cases
 
-`keyword_tag` in `trace_lens/tagger.py` is an offline keyword-rule baseline over the same error text. `scripts/eval_tagger.py` prints its accuracy on the 40 items next to the model's, and also runs both on `eval/hard_cases.jsonl`, 8 further ambiguous, real-world-style error strings (e.g. wrapped library exceptions) kept separate from the 40. No baseline or hard-case numbers are reported here because only the 40-item model run above has been measured; run the script to get them. If the keyword baseline comes close to the model, that tells you the 40 items are mostly keyword matching.
+`keyword_tag` in `trace_lens/tagger.py` is an offline keyword-rule baseline over the same error text. `scripts/eval_tagger.py` prints its accuracy on the 40 items next to the model's, and also runs both on `eval/hard_cases.jsonl`, 8 further ambiguous, real-world-style error strings (e.g. wrapped library exceptions) kept separate from the 40. Measured results from the same run:
+
+| set | `llama3.2` | keyword rules |
+| --- | --- | --- |
+| 40 labeled items | 33/40 (0.825) | 33/40 (0.825) |
+| 8 hard cases | 5/8 | 3/8 |
+
+**The model only ties the keyword rules on the 40 items**, so the 82.5% headline is no better than offline keyword matching. It beats them only on the 8 hard cases (5/8 vs 3/8), a very small sample that cannot support a strong claim.
+
+**Caveat on the baseline:** the keyword rules were written with the labeled set in view (words such as "budget", "refused" and "inference host" come from those strings), so the baseline score is probably inflated. The rule order is also brittle: the bare word "model" maps to `model_unavailable`, so "model returned empty JSON" is tagged `model_unavailable` (pinned in `tests/test_evaluation.py` as a known misfire).
 
 To reproduce (needs a running Ollama with the model pulled):
 
@@ -86,7 +95,11 @@ To reproduce (needs a running Ollama with the model pulled):
 OLLAMA_MODEL=llama3.2 python scripts/eval_tagger.py
 ```
 
-The pytest suite tests the harness with a mocked LLM and never contacts Ollama.
+The pytest suite tests the harness and the `?method=llm` API path with a mocked LLM and never contacts Ollama.
+
+**What the UI shows:** the dashboard badges and failure summary use the offline **keyword** tagger, not the model evaluated at 82.5%. The same keyword rules also scored 82.5% on the 40 items, but the UI tags are not LLM output. The LLM tagger is only reachable through `GET /runs/{id}/tags?method=llm`.
+
+The UI states can be previewed without data: open the page with `?state=loading`, `?state=empty` or `?state=error`.
 
 Note: step error text is untrusted and is interpolated into the tagger prompt, so it is a low-risk prompt-injection surface. The reply is only used as a tag, and `parse_tag` restricts it to the five tags or `unknown`.
 

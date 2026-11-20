@@ -40,6 +40,34 @@ def test_tags_endpoint_tags_failed_steps_only(client):
     assert client.get("/runs/run-001/tags?method=bogus").status_code == 422
 
 
+def test_tags_endpoint_llm_method_with_mocked_client(client, monkeypatch):
+    import trace_lens.tagger as tagger
+
+    seen = {}
+
+    class FakeClient:
+        def generate(self, prompt):
+            seen["prompt"] = prompt
+            return "timeout"
+
+    monkeypatch.setattr(tagger, "OllamaClient", FakeClient)
+    resp = client.get("/runs/run-001/tags?method=llm")
+    assert resp.status_code == 200
+    assert resp.json() == [{"step_id": "s3", "tag": "timeout", "method": "llm"}]
+    assert "tool failed: connection refused" in seen["prompt"]
+
+
+def test_tags_endpoint_llm_failure_is_502(client, monkeypatch):
+    import trace_lens.tagger as tagger
+
+    class DownClient:
+        def generate(self, prompt):
+            raise RuntimeError("ollama down")
+
+    monkeypatch.setattr(tagger, "OllamaClient", DownClient)
+    assert client.get("/runs/run-001/tags?method=llm").status_code == 502
+
+
 def test_list_runs_and_tree(client):
     runs = client.get("/runs").json()
     assert [r["run_id"] for r in runs] == ["run-001"]

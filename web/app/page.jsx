@@ -11,9 +11,9 @@ async function getJson(path) {
   return res.json();
 }
 
-function Kpi({ label, value, unit, note, bad, index, children }) {
+function Kpi({ label, value, unit, note, bad, hero, index, children }) {
   return (
-    <div className={`kpi surface${bad ? " kpi-bad" : ""}`} style={{ "--i": index }}>
+    <div className={`kpi surface${bad ? " kpi-bad" : ""}${hero ? " kpi-hero" : ""}`} style={{ "--i": index }}>
       <span className="label">{label}</span>
       <span className="value">
         {value}
@@ -27,15 +27,18 @@ function Kpi({ label, value, unit, note, bad, index, children }) {
 
 function Skeleton() {
   return (
-    <div aria-busy="true" aria-label="Loading traces">
-      <div className="kpis">
+    <div role="status" aria-busy="true" aria-live="polite">
+      <span className="sr-only">Loading traces…</span>
+      <div className="kpis" aria-hidden="true">
         {[0, 1, 2, 3].map((i) => (
-          <div key={i} className="surface skeleton sk-kpi" />
+          <div key={i} className={`surface skeleton sk-kpi${i === 0 ? " kpi-hero" : ""}`} />
         ))}
       </div>
-      {[0, 1, 2].map((i) => (
-        <div key={i} className="surface skeleton sk-row" />
-      ))}
+      <div aria-hidden="true">
+        {[0, 1, 2].map((i) => (
+          <div key={i} className="surface skeleton sk-row" />
+        ))}
+      </div>
     </div>
   );
 }
@@ -55,6 +58,19 @@ export default function Page() {
   }, []);
 
   useEffect(() => {
+    // ?state=loading|empty|error previews a UI state without needing the API.
+    const preview = new URLSearchParams(window.location.search).get("state");
+    if (preview === "loading") return;
+    if (preview === "empty") {
+      setRuns([]);
+      setLoading(false);
+      return;
+    }
+    if (preview === "error") {
+      setError("API returned 500");
+      setLoading(false);
+      return;
+    }
     getJson("/runs")
       .then((r) => {
         setRuns(r);
@@ -86,6 +102,14 @@ export default function Page() {
   const totalTokens = m ? m.total_tokens : 0;
   const promptPct = totalTokens ? (m.prompt_tokens / totalTokens) * 100 : 0;
   const topSteps = m ? [...m.steps].sort((a, b) => b.tokens - a.tokens).filter((s) => s.tokens > 0) : [];
+  const slowestSteps = m ? [...m.steps].sort((a, b) => b.duration_ms - a.duration_ms).slice(0, 4) : [];
+  const maxDur = slowestSteps.length ? Math.max(slowestSteps[0].duration_ms, 1) : 1;
+  const failedSteps = detail ? detail.tree.filter((s) => s.status === "error") : [];
+  const failureCounts = {};
+  failedSteps.forEach((s) => {
+    const t = tags[s.step_id] || "untagged";
+    failureCounts[t] = (failureCounts[t] || 0) + 1;
+  });
 
   return (
     <main>
@@ -110,7 +134,7 @@ export default function Page() {
       {loading && !error && <Skeleton />}
 
       {!loading && !error && runs && runs.length === 0 && (
-        <div className="surface panel empty" style={{ "--i": 1 }}>
+        <div className="surface panel empty" role="status" style={{ "--i": 1 }}>
           <svg className="icon" viewBox="0 0 24 24" width="40" height="40" aria-hidden="true">
             <path d="M3 12h4l3-8 4 16 3-8h4" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
           </svg>
@@ -141,7 +165,7 @@ export default function Page() {
       {m && !error && (
         <>
           <section className="kpis" aria-label="Run summary">
-            <Kpi label="Tokens" value={m.total_tokens.toLocaleString()} index={2}
+            <Kpi label="Tokens" value={m.total_tokens.toLocaleString()} index={2} hero
               note={`${m.prompt_tokens.toLocaleString()} prompt · ${m.completion_tokens.toLocaleString()} completion`}>
               <div className="track thin"><div className="fill fill-ok" style={{ width: `${promptPct}%` }} /></div>
             </Kpi>
@@ -162,20 +186,60 @@ export default function Page() {
           </section>
 
           <div className="columns">
-            <aside className="surface panel share" style={{ "--i": 6 }}>
-              <h2>Token share by step</h2>
-              {topSteps.length === 0 && <p className="empty">No tokens recorded.</p>}
-              <ul className="share-list">
-                {topSteps.map((s) => (
-                  <li key={s.step_id}>
-                    <div className="share-row">
-                      <span>{s.name}</span>
-                      <span className="num">{((s.tokens / totalTokens) * 100).toFixed(0)}%</span>
-                    </div>
-                    <div className="track"><div className="fill fill-violet" style={{ width: `${(s.tokens / totalTokens) * 100}%` }} /></div>
-                  </li>
-                ))}
-              </ul>
+            <aside className="side" aria-label="Insights">
+              <div className="surface panel share" style={{ "--i": 6 }}>
+                <h2>Token share by step</h2>
+                {topSteps.length === 0 && <p className="empty">No tokens recorded.</p>}
+                <ul className="share-list">
+                  {topSteps.map((s) => (
+                    <li key={s.step_id}>
+                      <div className="share-row">
+                        <span>{s.name}</span>
+                        <span className="num">{((s.tokens / totalTokens) * 100).toFixed(0)}%</span>
+                      </div>
+                      <div className="track"><div className="fill fill-violet" style={{ width: `${(s.tokens / totalTokens) * 100}%` }} /></div>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+              <div className="surface panel" style={{ "--i": 7 }}>
+                <h2>Prompt vs completion</h2>
+                <div className="split-row">
+                  <span>Prompt <b className="num">{m.prompt_tokens.toLocaleString()}</b></span>
+                  <span>Completion <b className="num">{m.completion_tokens.toLocaleString()}</b></span>
+                </div>
+                <div className="track"><div className="fill fill-ok" style={{ width: `${promptPct}%` }} /></div>
+              </div>
+              <div className="surface panel" style={{ "--i": 8 }}>
+                <h2>Slowest steps</h2>
+                <ul className="share-list">
+                  {slowestSteps.map((s) => {
+                    const d = formatDuration(s.duration_ms);
+                    return (
+                      <li key={s.step_id}>
+                        <div className="share-row">
+                          <span>{s.name}</span>
+                          <span className="num">{d.value} {d.unit}</span>
+                        </div>
+                        <div className="track"><div className="fill fill-warn" style={{ width: `${(s.duration_ms / maxDur) * 100}%` }} /></div>
+                      </li>
+                    );
+                  })}
+                </ul>
+              </div>
+              <div className="surface panel" style={{ "--i": 9 }}>
+                <h2>Failure summary</h2>
+                {failedSteps.length === 0 ? (
+                  <p className="empty">No failed steps in this run.</p>
+                ) : (
+                  <ul className="fail-list">
+                    {Object.entries(failureCounts).map(([tag, n]) => (
+                      <li key={tag}><span className="pill pill-tag">{tag}</span><span className="num">{n} step{n > 1 ? "s" : ""}</span></li>
+                    ))}
+                  </ul>
+                )}
+                <p className="note-small">Tags come from the offline keyword tagger.</p>
+              </div>
             </aside>
             <section className="tree-col" aria-label="Trace tree">
               <h2>Trace</h2>
