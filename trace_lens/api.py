@@ -6,7 +6,10 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from . import metrics
 from .db import connect, get_db_path
-from .tagger import keyword_tag
+from .tagger import UNKNOWN, keyword_tag
+
+# Max distinct error strings sent to Ollama per request (each call can take up to 60 s).
+MAX_LLM_TAGS = 10
 
 RUN_ID_PATTERN = r"^[A-Za-z0-9._:-]{1,128}$"
 
@@ -73,12 +76,20 @@ def create_app(db_path: str | None = None) -> FastAPI:
         else:
             tag_fn = keyword_tag
         out = []
+        cache: dict[str, str] = {}  # identical error text is tagged once
         for s in failed:
-            item = {"step_name": s["name"], "kind": s["kind"], "error": s["error"] or ""}
-            try:
-                tag = tag_fn(item)
-            except Exception as exc:  # Ollama down, bad reply, etc.
-                raise HTTPException(status_code=502, detail=f"tagger failed: {exc}") from exc
+            error = s["error"] or ""
+            if error in cache:
+                tag = cache[error]
+            elif method == "llm" and len(cache) >= MAX_LLM_TAGS:
+                tag = UNKNOWN  # cap reached: no further Ollama calls for this request
+            else:
+                item = {"step_name": s["name"], "kind": s["kind"], "error": error}
+                try:
+                    tag = tag_fn(item)
+                except Exception as exc:  # Ollama down, bad reply, etc.
+                    raise HTTPException(status_code=502, detail=f"tagger failed: {exc}") from exc
+                cache[error] = tag
             out.append({"step_id": s["step_id"], "tag": tag, "method": method})
         return out
 

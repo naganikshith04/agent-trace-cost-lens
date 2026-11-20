@@ -71,14 +71,24 @@ def keyword_tag(item: dict) -> str:
     return UNKNOWN
 
 
+MAX_FIELD_CHARS = 500
+
+
+def sanitize_field(value: object, limit: int = MAX_FIELD_CHARS) -> str:
+    """Make untrusted text safe to place on one prompt line: no control chars or
+    line breaks (so it cannot fake a new prompt section), bounded length."""
+    text = "".join(ch if ch.isprintable() else " " for ch in str(value))
+    return " ".join(text.split())[:limit]
+
+
 def make_tagger(generate: Callable[[str], str]) -> Callable[[dict], str]:
     """Build a tagging function from any text-generation callable (real or mocked)."""
 
     def tag(item: dict) -> str:
         prompt = PROMPT.format(
-            step_name=item.get("step_name", ""),
-            kind=item.get("kind", ""),
-            error=item.get("error", ""),
+            step_name=sanitize_field(item.get("step_name", ""), 120),
+            kind=sanitize_field(item.get("kind", ""), 20),
+            error=sanitize_field(item.get("error", "")),
         )
         return parse_tag(generate(prompt))
 

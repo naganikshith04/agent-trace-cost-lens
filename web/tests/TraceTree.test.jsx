@@ -16,7 +16,7 @@ describe("TraceTree", () => {
     const ids = screen.getAllByTestId(/^step-/).map((el) => el.dataset.testid);
     expect(ids).toEqual(["step-a", "step-b", "step-c", "step-d"]);
     const child = screen.getByTestId("step-d");
-    expect(screen.getByTestId("step-c").parentElement.querySelector("ul")).toContainElement(child);
+    expect(screen.getByTestId("step-c").parentElement.querySelector("ul").contains(child)).toBe(true);
   });
 
   it("flags failed and slow steps only where applicable", () => {

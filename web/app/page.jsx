@@ -27,21 +27,66 @@ function Kpi({ label, value, unit, note, bad, hero, index, children }) {
 
 function Skeleton() {
   return (
-    <div role="status" aria-busy="true" aria-live="polite">
+    <div role="status" aria-busy="true">
       <span className="sr-only">Loading traces…</span>
       <div className="kpis" aria-hidden="true">
         {[0, 1, 2, 3].map((i) => (
-          <div key={i} className={`surface skeleton sk-kpi${i === 0 ? " kpi-hero" : ""}`} />
+          <div key={i} className={`surface skeleton sk-kpi${i === 0 ? " kpi-hero" : ""}`}>
+            <span className="sk-line sk-short" />
+            <span className="sk-line sk-big" />
+            <span className="sk-line sk-bar" />
+          </div>
         ))}
       </div>
       <div aria-hidden="true">
         {[0, 1, 2].map((i) => (
-          <div key={i} className="surface skeleton sk-row" />
+          <div key={i} className="surface skeleton sk-row" style={{ marginLeft: i === 0 ? 0 : `${i * 0.8}rem` }}>
+            <span className="sk-line sk-med" />
+            <span className="sk-line sk-bar" />
+          </div>
         ))}
       </div>
     </div>
   );
 }
+
+function CopyCommand({ command }) {
+  const [copied, setCopied] = useState(false);
+  const copy = () => {
+    const done = () => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1800);
+    };
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(command).then(done, () => {});
+    }
+  };
+  return (
+    <div className="cmd">
+      <code>{command}</code>
+      <button type="button" className="btn btn-ghost" onClick={copy} aria-label={`Copy command: ${command}`}>
+        {copied ? "Copied" : "Copy"}
+      </button>
+    </div>
+  );
+}
+
+function EmptyIllustration() {
+  return (
+    <svg className="illus" viewBox="0 0 120 80" width="120" height="80" aria-hidden="true">
+      <rect x="4" y="6" width="112" height="68" rx="14" fill="#0a0d16" stroke="#485b73" strokeOpacity="0.5" />
+      <rect x="18" y="20" width="44" height="7" rx="3.5" fill="#485b73" opacity="0.6" />
+      <rect x="18" y="34" width="84" height="7" rx="3.5" fill="#485b73" opacity="0.35" />
+      <rect x="30" y="48" width="60" height="7" rx="3.5" fill="#485b73" opacity="0.35" />
+      <path d="M18 64h20l6-8 8 14 6-6h44" fill="none" stroke="#7ee0b5" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+const METHODS = [
+  { id: "keyword", label: "Keyword", hint: "offline rules" },
+  { id: "llm", label: "LLM", hint: "local Ollama" },
+];
 
 export default function Page() {
   const [runs, setRuns] = useState(null);
@@ -51,6 +96,9 @@ export default function Page() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [attempt, setAttempt] = useState(0);
+  const [method, setMethod] = useState("keyword");
+  const [tagsLoading, setTagsLoading] = useState(false);
+  const [tagError, setTagError] = useState("");
   const retry = useCallback(() => {
     setError("");
     setLoading(true);
@@ -92,10 +140,25 @@ export default function Page() {
       .then(([metrics, tree]) => setDetail({ metrics, tree }))
       .catch((e) => setError(e.message))
       .finally(() => setLoading(false));
-    getJson(`/runs/${id}/tags`)
-      .then((list) => setTags(Object.fromEntries(list.map((t) => [t.step_id, t.tag]))))
-      .catch(() => setTags({}));
   }, [selected, attempt]);
+
+  useEffect(() => {
+    if (!selected) return;
+    let live = true;
+    setTagsLoading(true);
+    setTagError("");
+    getJson(`/runs/${encodeURIComponent(selected)}/tags?method=${method}`)
+      .then((list) => live && setTags(Object.fromEntries(list.map((t) => [t.step_id, t.tag]))))
+      .catch((e) => {
+        if (!live) return;
+        setTags({});
+        setTagError(method === "llm" ? "LLM tagger unavailable (is Ollama running?). No tags shown." : e.message);
+      })
+      .finally(() => live && setTagsLoading(false));
+    return () => {
+      live = false;
+    };
+  }, [selected, attempt, method]);
 
   const m = detail && detail.metrics;
   const lat = m ? formatDuration(m.total_latency_ms) : null;
@@ -123,26 +186,30 @@ export default function Page() {
         </div>
       </header>
 
-      {error && (
-        <div className="surface panel panel-bad" role="alert">
-          <strong>Could not read traces</strong>
-          <p>{error}. Is the API running at {API}?</p>
-          <button type="button" className="btn" onClick={retry}>Retry</button>
-        </div>
-      )}
+      <div className="states" aria-live="polite">
+        {error && (
+          <div className="panel panel-bad" role="alert">
+            <svg className="icon" viewBox="0 0 24 24" width="36" height="36" aria-hidden="true">
+              <circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" strokeWidth="1.8" />
+              <path d="M12 7v6M12 16.5v.5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+            </svg>
+            <strong>Could not read traces</strong>
+            <p>{error}. Is the API running at {API}, and is <code>TRACE_DB_PATH</code> pointing at a readable <code>traces.db</code>?</p>
+            <button type="button" className="btn" onClick={retry}>Retry</button>
+          </div>
+        )}
 
-      {loading && !error && <Skeleton />}
+        {loading && !error && <Skeleton />}
 
-      {!loading && !error && runs && runs.length === 0 && (
-        <div className="surface panel empty" role="status" style={{ "--i": 1 }}>
-          <svg className="icon" viewBox="0 0 24 24" width="40" height="40" aria-hidden="true">
-            <path d="M3 12h4l3-8 4 16 3-8h4" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
-          </svg>
-          <strong>No traces yet</strong>
-          <p>Point your agent at the importer to get started:</p>
-          <code>python -m trace_lens import file.json</code>
-        </div>
-      )}
+        {!loading && !error && runs && runs.length === 0 && (
+          <div className="surface panel empty" role="status" style={{ "--i": 1 }}>
+            <EmptyIllustration />
+            <strong>No runs yet</strong>
+            <p>Point <code>TRACE_DB_PATH</code> at your <code>traces.db</code>, or import a trace:</p>
+            <CopyCommand command="python -m trace_lens import examples/sample_trace.json" />
+          </div>
+        )}
+      </div>
 
       {runs && runs.length > 0 && (
         <div className="picker" style={{ "--i": 1 }}>
@@ -238,7 +305,21 @@ export default function Page() {
                     ))}
                   </ul>
                 )}
-                <p className="note-small">Tags come from the offline keyword tagger.</p>
+                <div className="seg" role="group" aria-label="Tagging method">
+                  {METHODS.map((o) => (
+                    <button key={o.id} type="button" className={`seg-btn${method === o.id ? " on" : ""}`}
+                      aria-pressed={method === o.id} onClick={() => setMethod(o.id)}>
+                      {o.label}<small>{o.hint}</small>
+                    </button>
+                  ))}
+                </div>
+                {tagsLoading && <p className="note-small" role="status">Tagging…</p>}
+                {tagError && <p className="note-small note-bad" role="alert">{tagError}</p>}
+                <p className="note-small">
+                  {method === "llm"
+                    ? "Tags come from a local Ollama model (at most 10 distinct errors per request)."
+                    : "Tags come from the offline keyword rules."}
+                </p>
               </div>
             </aside>
             <section className="tree-col" aria-label="Trace tree">

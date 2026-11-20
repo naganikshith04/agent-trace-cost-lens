@@ -97,16 +97,16 @@ OLLAMA_MODEL=llama3.2 python scripts/eval_tagger.py
 
 The pytest suite tests the harness and the `?method=llm` API path with a mocked LLM and never contacts Ollama.
 
-**What the UI shows:** the dashboard badges and failure summary use the offline **keyword** tagger, not the model evaluated at 82.5%. The same keyword rules also scored 82.5% on the 40 items, but the UI tags are not LLM output. The LLM tagger is only reachable through `GET /runs/{id}/tags?method=llm`.
+**What the UI shows:** the Failure summary panel has a **Keyword / LLM** toggle. Keyword (offline rules) is the default; LLM calls the local Ollama model through `GET /runs/{id}/tags?method=llm`, and shows a message if Ollama is not reachable. The evaluation above is still a mostly negative result: the model ties the keyword rules on the 40 items and the 8-item hard set is too small to claim more. A held-out set of at least 30 items has not been written.
 
-The UI states can be previewed without data: open the page with `?state=loading`, `?state=empty` or `?state=error`.
+The UI states can be previewed without data: open the page with `?state=loading`, `?state=empty` or `?state=error`. The page logic (loading, empty, error with Retry, and the tagging toggle) is covered by vitest tests with a mocked `fetch` in `web/tests/page.test.jsx`.
 
-Note: step error text is untrusted and is interpolated into the tagger prompt, so it is a low-risk prompt-injection surface. The reply is only used as a tag, and `parse_tag` restricts it to the five tags or `unknown`.
+Note: step error text is untrusted and is interpolated into the tagger prompt, so it is a low-risk prompt-injection surface. Before it reaches the prompt it is flattened to one line (control characters and line breaks removed) and cut to 500 characters. The reply is only used as a tag, and `parse_tag` restricts it to the five tags or `unknown`. To bound latency, `?method=llm` sends each distinct error string to Ollama once per request and at most 10 distinct strings (`MAX_LLM_TAGS` in `trace_lens/api.py`); further failed steps are tagged `unknown`.
 
 ## Limitations
 
 - Note that only one JSON format is supported in v1 (`ollama-agent-trace` version `1`); other formats are rejected.
 - Steps must list parents before children; timestamps need a timezone.
-- The UI badge uses the offline keyword tagger (`/runs/{id}/tags`); the Ollama tagger is available via `?method=llm` but is not called by the UI. Tags are computed on request, not stored.
+- The UI badge uses the offline keyword tagger by default; the Keyword/LLM toggle switches to the Ollama tagger (`?method=llm`). Tags are computed on request, not stored.
 - Re-importing a run_id with different content raises a conflict instead of overwriting; runs imported before this check have no stored hash and are skipped silently.
 - No authentication; intended for local use only.
