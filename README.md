@@ -23,7 +23,7 @@ python -m trace_lens serve                       # http://127.0.0.1:8000
 
 cd web && npm install
 NEXT_PUBLIC_SLOW_MS=5000 npm run dev             # http://127.0.0.1:3000
-npm test                                         # component test
+npm test                                         # component + page tests (Node 20, see web/.nvmrc; use `npm ci`)
 ```
 
 Environment variables are listed in `.env.example` (`TRACE_DB_PATH`, `OLLAMA_URL`, `OLLAMA_MODEL`, `NEXT_PUBLIC_API_URL`, `NEXT_PUBLIC_SLOW_MS`). Services bind to 127.0.0.1.
@@ -97,7 +97,7 @@ OLLAMA_MODEL=llama3.2 python scripts/eval_tagger.py
 
 The pytest suite tests the harness and the `?method=llm` API path with a mocked LLM and never contacts Ollama.
 
-**What the UI shows:** the Failure summary panel has a **Keyword / LLM** toggle. Keyword (offline rules) is the default; LLM calls the local Ollama model through `GET /runs/{id}/tags?method=llm`, and shows a message if Ollama is not reachable. The evaluation above is still a mostly negative result: the model ties the keyword rules on the 40 items and the 8-item hard set is too small to claim more. A held-out set of at least 30 items has not been written.
+**What the UI shows:** the Failure summary panel has a **Keyword / LLM** toggle. Keyword (offline rules) is the default; LLM calls the local Ollama model through `GET /runs/{id}/tags?method=llm`, and shows a message if Ollama is not reachable. The evaluation above is still a mostly negative result: the model ties the keyword rules on the 40 items and the 8-item hard set is too small to claim more. A held-out set of 32 items (`eval/heldout.jsonl`, written after the keyword rules were frozen, varied phrasing, all five tags) now exists and `scripts/eval_tagger.py` prints both taggers' scores on it. **No model or keyword result on the held-out set has been measured yet**, so no number is reported here; the 40-item tie above remains the only measured headline. Run the script with Ollama available and put the held-out numbers in the table above.
 
 The UI states can be previewed without data: open the page with `?state=loading`, `?state=empty` or `?state=error`. The page logic (loading, empty, error with Retry, and the tagging toggle) is covered by vitest tests with a mocked `fetch` in `web/tests/page.test.jsx`.
 

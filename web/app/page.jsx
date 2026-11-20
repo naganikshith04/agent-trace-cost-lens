@@ -64,7 +64,7 @@ function CopyCommand({ command }) {
   return (
     <div className="cmd">
       <code>{command}</code>
-      <button type="button" className="btn btn-ghost" onClick={copy} aria-label={`Copy command: ${command}`}>
+      <button type="button" className="btn btn-cta" onClick={copy} aria-label={`Copy command: ${command}`}>
         {copied ? "Copied" : "Copy"}
       </button>
     </div>
@@ -82,6 +82,8 @@ function EmptyIllustration() {
     </svg>
   );
 }
+
+const KINDS = ["agent", "llm", "tool"];
 
 const METHODS = [
   { id: "keyword", label: "Keyword", hint: "offline rules" },
@@ -168,6 +170,10 @@ export default function Page() {
   const slowestSteps = m ? [...m.steps].sort((a, b) => b.duration_ms - a.duration_ms).slice(0, 4) : [];
   const maxDur = slowestSteps.length ? Math.max(slowestSteps[0].duration_ms, 1) : 1;
   const failedSteps = detail ? detail.tree.filter((s) => s.status === "error") : [];
+  const kindCounts = { agent: 0, llm: 0, tool: 0 };
+  if (detail) detail.tree.forEach((s) => { if (s.kind in kindCounts) kindCounts[s.kind] += 1; });
+  const kindTotal = Math.max(1, kindCounts.agent + kindCounts.llm + kindCounts.tool);
+  const kindNote = KINDS.map((k) => `${kindCounts[k]} ${k}`).join(" · ");
   const failureCounts = {};
   failedSteps.forEach((s) => {
     const t = tags[s.step_id] || "untagged";
@@ -204,18 +210,20 @@ export default function Page() {
         {!loading && !error && runs && runs.length === 0 && (
           <div className="surface panel empty" role="status" style={{ "--i": 1 }}>
             <EmptyIllustration />
-            <strong>No runs yet</strong>
+            <strong>No traces in this run</strong>
             <p>Point <code>TRACE_DB_PATH</code> at your <code>traces.db</code>, or import a trace:</p>
             <CopyCommand command="python -m trace_lens import examples/sample_trace.json" />
           </div>
         )}
       </div>
 
-      {runs && runs.length > 0 && (
+      {runs && (
         <div className="picker" style={{ "--i": 1 }}>
           <label htmlFor="run-select" className="label">Run</label>
           <div className="select-wrap">
-            <select id="run-select" value={selected} onChange={(e) => setSelected(e.target.value)}>
+            <select id="run-select" value={selected} disabled={runs.length === 0}
+              onChange={(e) => setSelected(e.target.value)}>
+              {runs.length === 0 && <option value="">No runs available</option>}
               {runs.map((r) => (
                 <option key={r.run_id} value={r.run_id}>
                   {r.run_id} ({r.model})
@@ -249,7 +257,13 @@ export default function Page() {
                 <div className="fill fill-bad" style={{ width: `${m.step_count ? (m.error_count / m.step_count) * 100 : 0}%` }} />
               </div>
             </Kpi>
-            <Kpi label="Steps" value={m.step_count} index={5} note="agent, llm and tool calls" />
+            <Kpi label="Steps" value={m.step_count} index={5} note={kindNote}>
+              <div className="track thin stack" role="img" aria-label={kindNote}>
+                {KINDS.map((k) => kindCounts[k] > 0 && (
+                  <div key={k} className={`seg-fill seg-${k}`} style={{ width: `${(kindCounts[k] / kindTotal) * 100}%` }} />
+                ))}
+              </div>
+            </Kpi>
           </section>
 
           <div className="columns">

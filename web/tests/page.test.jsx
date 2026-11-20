@@ -43,14 +43,15 @@ describe("Page states", () => {
     vi.stubGlobal("fetch", vi.fn(() => new Promise(() => {})));
     render(<Page />);
     expect(screen.getByText("Loading traces…")).toBeTruthy();
-    expect(screen.queryByText("No runs yet")).toBeNull();
+    expect(screen.queryByText("No traces in this run")).toBeNull();
   });
 
   it("shows the empty state when there are no runs", async () => {
     vi.stubGlobal("fetch", vi.fn(() => json([])));
     render(<Page />);
-    expect(await screen.findByText("No runs yet")).toBeTruthy();
+    expect(await screen.findByText("No traces in this run")).toBeTruthy();
     expect(screen.getByText(/python -m trace_lens import/)).toBeTruthy();
+    expect(screen.getByLabelText("Run").disabled).toBe(true);
     expect(screen.queryByText("Loading traces…")).toBeNull();
   });
 
@@ -75,7 +76,7 @@ describe("Page states", () => {
     vi.stubGlobal("fetch", vi.fn(() => new Promise(() => {})));
     setSearch("?state=empty");
     const { unmount } = render(<Page />);
-    expect(await screen.findByText("No runs yet")).toBeTruthy();
+    expect(await screen.findByText("No traces in this run")).toBeTruthy();
     unmount();
     setSearch("?state=error");
     render(<Page />);

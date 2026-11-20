@@ -1,0 +1,32 @@
+{"id": "x01", "step_name": "fetch_page", "kind": "tool", "error": "httpx.ConnectTimeout: no response from upstream after 30s", "label": "timeout"}
+{"id": "x02", "step_name": "plan", "kind": "llm", "error": "asyncio.exceptions.CancelledError: wait_for expired while awaiting completion", "label": "timeout"}
+{"id": "x03", "step_name": "run_tests", "kind": "tool", "error": "subprocess.TimeoutExpired: Command 'pytest -x' timed out after 120 seconds", "label": "timeout"}
+{"id": "x04", "step_name": "summarize", "kind": "llm", "error": "stream stalled: no tokens received for 45s, aborting", "label": "timeout"}
+{"id": "x05", "step_name": "db_query", "kind": "tool", "error": "psycopg2.errors.QueryCanceled: canceling statement due to statement timeout", "label": "timeout"}
+{"id": "x06", "step_name": "crawl", "kind": "tool", "error": "worker exceeded wall-clock allowance of 300s and was killed", "label": "timeout"}
+{"id": "x07", "step_name": "send_email", "kind": "tool", "error": "SMTPAuthenticationError: 535 authentication credentials invalid", "label": "tool_error"}
+{"id": "x08", "step_name": "read_file", "kind": "tool", "error": "FileNotFoundError: [Errno 2] No such file or directory: '/data/report.csv'", "label": "tool_error"}
+{"id": "x09", "step_name": "git_push", "kind": "tool", "error": "fatal: could not read from remote repository", "label": "tool_error"}
+{"id": "x10", "step_name": "search_web", "kind": "tool", "error": "HTTP 429 Too Many Requests from search provider", "label": "tool_error"}
+{"id": "x11", "step_name": "calculator", "kind": "tool", "error": "ZeroDivisionError: division by zero", "label": "tool_error"}
+{"id": "x12", "step_name": "write_db", "kind": "tool", "error": "sqlite3.IntegrityError: UNIQUE constraint failed: orders.id", "label": "tool_error"}
+{"id": "x13", "step_name": "shell", "kind": "tool", "error": "bash: kubectl: command not found", "label": "tool_error"}
+{"id": "x14", "step_name": "classify", "kind": "llm", "error": "json.decoder.JSONDecodeError: Expecting ',' delimiter: line 4 column 9", "label": "invalid_output"}
+{"id": "x15", "step_name": "extract_fields", "kind": "llm", "error": "output missing required key 'total_price'", "label": "invalid_output"}
+{"id": "x16", "step_name": "answer", "kind": "llm", "error": "reply was not one of the allowed choices: A, B, C", "label": "invalid_output"}
+{"id": "x17", "step_name": "rewrite", "kind": "llm", "error": "response contained markdown fences instead of raw YAML", "label": "invalid_output"}
+{"id": "x18", "step_name": "grade", "kind": "llm", "error": "expected an integer score between 1 and 5, received 'four out of five'", "label": "invalid_output"}
+{"id": "x19", "step_name": "chat", "kind": "llm", "error": "completion was blank", "label": "invalid_output"}
+{"id": "x20", "step_name": "analyze_log", "kind": "llm", "error": "request has 140211 tokens but the maximum is 131072", "label": "context_overflow"}
+{"id": "x21", "step_name": "chat", "kind": "llm", "error": "input truncated: conversation history no longer fits in the available window", "label": "context_overflow"}
+{"id": "x22", "step_name": "summarize_repo", "kind": "llm", "error": "prompt is too large for this model (needs 24k, limit 8k)", "label": "context_overflow"}
+{"id": "x23", "step_name": "rag_answer", "kind": "llm", "error": "retrieved passages overflow the allowed input size", "label": "context_overflow"}
+{"id": "x24", "step_name": "chat", "kind": "llm", "error": "maximum context exceeded; reduce the length of the messages", "label": "context_overflow"}
+{"id": "x25", "step_name": "review", "kind": "llm", "error": "input of 65000 tokens exceeds what the model can attend to", "label": "context_overflow"}
+{"id": "x26", "step_name": "chat", "kind": "llm", "error": "pull model manifest: file does not exist for 'llama3.3:70b'", "label": "model_unavailable"}
+{"id": "x27", "step_name": "generate", "kind": "llm", "error": "Error: could not connect to 127.0.0.1:11434; the Ollama daemon is not up", "label": "model_unavailable"}
+{"id": "x28", "step_name": "chat", "kind": "llm", "error": "HTTP 503 Service Unavailable: the requested model is overloaded", "label": "model_unavailable"}
+{"id": "x29", "step_name": "embed", "kind": "llm", "error": "CUDA out of memory while initializing weights", "label": "model_unavailable"}
+{"id": "x30", "step_name": "chat", "kind": "llm", "error": "404 page not found for model 'mistral-small'", "label": "model_unavailable"}
+{"id": "x31", "step_name": "chat", "kind": "llm", "error": "the weights file is corrupt and the runner could not start", "label": "model_unavailable"}
+{"id": "x32", "step_name": "tool_call", "kind": "llm", "error": "arguments for 'get_weather' were not valid JSON: trailing comma", "label": "invalid_output"}

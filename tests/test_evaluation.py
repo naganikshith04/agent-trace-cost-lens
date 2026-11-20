@@ -1,7 +1,16 @@
 import json
 
-from trace_lens.evaluation import evaluate, load_dataset
+from trace_lens.evaluation import evaluate, load_dataset, load_heldout
 from trace_lens.tagger import TAGS, make_tagger, parse_tag
+
+
+def test_heldout_set_has_30_plus_unique_items_covering_all_tags():
+    held = load_heldout()
+    main_ids = {it["id"] for it in load_dataset()}
+    assert len(held) >= 30
+    assert len({it["id"] for it in held}) == len(held)
+    assert not main_ids & {it["id"] for it in held}
+    assert set(it["label"] for it in held) == set(TAGS)
 
 
 def test_dataset_has_40_labeled_entries():

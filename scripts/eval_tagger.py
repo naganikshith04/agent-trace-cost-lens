@@ -11,7 +11,7 @@ import httpx
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from trace_lens.evaluation import evaluate, load_hard_cases  # noqa: E402
+from trace_lens.evaluation import evaluate, load_hard_cases, load_heldout  # noqa: E402
 from trace_lens.tagger import OllamaClient, keyword_tag, make_tagger  # noqa: E402
 
 
@@ -34,6 +34,11 @@ def main() -> int:
     kw_hard = evaluate(keyword_tag, dataset=hard)
     print(f"hard cases ({len(hard)} items): model={llm_hard['correct']}/{llm_hard['total']} "
           f"keyword={kw_hard['correct']}/{kw_hard['total']}")
+    held = load_heldout()
+    llm_held = evaluate(make_tagger(client.generate), dataset=held, out_path="eval_heldout_results.json")
+    kw_held = evaluate(keyword_tag, dataset=held)
+    print(f"held-out ({len(held)} items): model={llm_held['correct']}/{llm_held['total']} "
+          f"keyword={kw_held['correct']}/{kw_held['total']}")
     return 0
 
 

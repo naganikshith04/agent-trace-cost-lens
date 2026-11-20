@@ -33,6 +33,18 @@ def load_dataset(path: str | Path = DATASET_PATH) -> list[dict]:
     return items
 
 
+HELDOUT_PATH = Path(__file__).resolve().parent.parent / "eval" / "heldout.jsonl"
+HELDOUT_MIN = 30
+
+
+def load_heldout(path: str | Path = HELDOUT_PATH) -> list[dict]:
+    """Held-out items written after the keyword rules were frozen (at least 30)."""
+    items = _read_items(path)
+    if len(items) < HELDOUT_MIN:
+        raise ValueError(f"expected at least {HELDOUT_MIN} held-out items, found {len(items)}")
+    return items
+
+
 def load_hard_cases(path: str | Path = HARD_CASES_PATH) -> list[dict]:
     """Ambiguous / real-world-style error strings, kept apart from the 40 main items."""
     return _read_items(path)
