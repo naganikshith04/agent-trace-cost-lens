@@ -283,14 +283,6 @@ export default function Page() {
                   ))}
                 </ul>
               </div>
-              <div className="surface panel" style={{ "--i": 7 }}>
-                <h2>Prompt vs completion</h2>
-                <div className="split-row">
-                  <span>Prompt <b className="num">{m.prompt_tokens.toLocaleString()}</b></span>
-                  <span>Completion <b className="num">{m.completion_tokens.toLocaleString()}</b></span>
-                </div>
-                <div className="track"><div className="fill fill-ok" style={{ width: `${promptPct}%` }} /></div>
-              </div>
               <div className="surface panel" style={{ "--i": 8 }}>
                 <h2>Slowest steps</h2>
                 <ul className="share-list">

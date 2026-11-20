@@ -15,10 +15,30 @@ def main(argv: list[str] | None = None) -> int:
     imp = sub.add_parser("import", help="import trace JSON files")
     imp.add_argument("files", nargs="+")
     imp.add_argument("--db", default=None)
+    conv = sub.add_parser("convert-ollama", help="convert an Ollama /api/chat JSONL log to a v1 trace")
+    conv.add_argument("log")
+    conv.add_argument("--run-id", required=True)
+    conv.add_argument("--out", required=True)
     srv = sub.add_parser("serve", help="run the API")
     srv.add_argument("--host", default="127.0.0.1")
     srv.add_argument("--port", type=int, default=8000)
     args = parser.parse_args(argv)
+
+    if args.cmd == "convert-ollama":
+        import json
+
+        from .convert import convert_ollama_log
+        from .schema import validate_trace
+
+        try:
+            doc = validate_trace(convert_ollama_log(args.log, args.run_id))
+        except TraceValidationError as exc:
+            print(f"{args.log}: REJECTED - {exc}", file=sys.stderr)
+            return 1
+        with open(args.out, "w", encoding="utf-8") as fh:
+            json.dump(doc, fh, indent=2)
+        print(f"{args.out}: wrote {len(doc['steps'])} steps")
+        return 0
 
     if args.cmd == "import":
         conn = connect(args.db)

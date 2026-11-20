@@ -1,0 +1,8 @@
+{
+  "set": "eval/heldout.jsonl",
+  "total": 32,
+  "model": "llama3.2",
+  "model_correct": 25,
+  "keyword_correct": 14,
+  "note": "Aggregate counts copied from the scripts/eval_tagger.py run output; per-item predictions were not captured."
+}

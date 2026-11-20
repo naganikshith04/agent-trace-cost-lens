@@ -4,7 +4,7 @@
 
 A local dashboard that turns your LLM agent traces into token, latency and failure insights.
 
-- Imports Ollama agent-run traces (one JSON format) into SQLite, atomically and idempotently.
+- Imports agent-run traces in one custom JSON format (`ollama-agent-trace` v1, defined in this repo) into SQLite, atomically and idempotently. Ollama itself does not export this format; there is no native Ollama trace exporter. A small converter (`python -m trace_lens convert-ollama chat.jsonl --run-id my-run --out trace.json`) turns saved Ollama `/api/chat` JSONL responses into flat `llm` steps (no tool or parent/child structure).
 - FastAPI endpoints return per-run metrics: tokens, total and per-step latency, error counts.
 - A Next.js trace tree shows steps in parent/child order and flags failed steps and steps slower than a configurable threshold.
 - A failure tagger asks a local Ollama model to classify why a step failed, with an evaluation harness over 40 labeled examples.
@@ -84,8 +84,9 @@ The 7 misses, by item id (gold → predicted): `invalid_output` is the weak clas
 | --- | --- | --- |
 | 40 labeled items | 33/40 (0.825) | 33/40 (0.825) |
 | 8 hard cases | 5/8 | 3/8 |
+| 32 held-out items (`eval/heldout.jsonl`) | 25/32 (0.78) | 14/32 (0.44) |
 
-**The model only ties the keyword rules on the 40 items**, so the 82.5% headline is no better than offline keyword matching. It beats them only on the 8 hard cases (5/8 vs 3/8), a very small sample that cannot support a strong claim.
+**Conclusion:** the model only ties the keyword rules on the 40 tuned items, but beats them by a wide margin on unseen phrasing (25/32 vs 14/32 held-out). The held-out set was written after the keyword rules were frozen, so it is the fairer comparison and the strongest result here. The 8 hard cases point the same way (5/8 vs 3/8) but are too few to support a claim alone. Held-out counts are saved in `eval_heldout_results.json` (aggregates only; per-item predictions were not captured). The held-out items are still hand-written, so this is not a measure on real agent failures.
 
 **Caveat on the baseline:** the keyword rules were written with the labeled set in view (words such as "budget", "refused" and "inference host" come from those strings), so the baseline score is probably inflated. The rule order is also brittle: the bare word "model" maps to `model_unavailable`, so "model returned empty JSON" is tagged `model_unavailable` (pinned in `tests/test_evaluation.py` as a known misfire).
 
@@ -97,7 +98,7 @@ OLLAMA_MODEL=llama3.2 python scripts/eval_tagger.py
 
 The pytest suite tests the harness and the `?method=llm` API path with a mocked LLM and never contacts Ollama.
 
-**What the UI shows:** the Failure summary panel has a **Keyword / LLM** toggle. Keyword (offline rules) is the default; LLM calls the local Ollama model through `GET /runs/{id}/tags?method=llm`, and shows a message if Ollama is not reachable. The evaluation above is still a mostly negative result: the model ties the keyword rules on the 40 items and the 8-item hard set is too small to claim more. A held-out set of 32 items (`eval/heldout.jsonl`, written after the keyword rules were frozen, varied phrasing, all five tags) now exists and `scripts/eval_tagger.py` prints both taggers' scores on it. **No model or keyword result on the held-out set has been measured yet**, so no number is reported here; the 40-item tie above remains the only measured headline. Run the script with Ollama available and put the held-out numbers in the table above.
+**What the UI shows:** the Failure summary panel has a **Keyword / LLM** toggle. Keyword (offline rules) is the default; LLM calls the local Ollama model through `GET /runs/{id}/tags?method=llm`, and shows a message if Ollama is not reachable. Because the held-out results favour the model (25/32 vs 14/32), use the **LLM** toggle when Ollama is running; the keyword default is kept only because it works offline and instantly. The keyword rules are the weaker tagger on unseen text, and the rule order is not fixed here: changing it would invalidate the measured keyword scores above.
 
 The UI states can be previewed without data: open the page with `?state=loading`, `?state=empty` or `?state=error`. The page logic (loading, empty, error with Retry, and the tagging toggle) is covered by vitest tests with a mocked `fetch` in `web/tests/page.test.jsx`.
 
@@ -105,7 +106,7 @@ Note: step error text is untrusted and is interpolated into the tagger prompt, s
 
 ## Limitations
 
-- Note that only one JSON format is supported in v1 (`ollama-agent-trace` version `1`); other formats are rejected.
+- Note that only one JSON format is supported in v1 (`ollama-agent-trace` version `1`); other formats are rejected. No adapter exists for agent frameworks or OpenTelemetry spans; only the `/api/chat` JSONL converter above is provided.
 - Steps must list parents before children; timestamps need a timezone.
 - The UI badge uses the offline keyword tagger by default; the Keyword/LLM toggle switches to the Ollama tagger (`?method=llm`). Tags are computed on request, not stored.
 - Re-importing a run_id with different content raises a conflict instead of overwriting; runs imported before this check have no stored hash and are skipped silently.
