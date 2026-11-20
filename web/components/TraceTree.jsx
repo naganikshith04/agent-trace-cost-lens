@@ -18,11 +18,18 @@ export function formatDuration(ms) {
   return { value: String(Math.round(ms)), unit: "ms" };
 }
 
-function Node({ node, slowMs, totalMs, tags, index }) {
+function offsetMs(step, originMs) {
+  const t = Date.parse(step.started_at);
+  return Number.isFinite(t) && Number.isFinite(originMs) ? Math.max(0, t - originMs) : 0;
+}
+
+function Node({ node, slowMs, totalMs, tags, index, originMs }) {
   const failed = node.status === "error";
   const slow = node.duration_ms > slowMs;
   const cls = ["step", failed ? "failed" : "", slow ? "slow" : ""].filter(Boolean).join(" ");
-  const pct = totalMs > 0 ? Math.min(100, (node.duration_ms / totalMs) * 100) : 0;
+  const rawPct = totalMs > 0 ? (node.duration_ms / totalMs) * 100 : 0;
+  const left = totalMs > 0 ? Math.min(100, (offsetMs(node, originMs) / totalMs) * 100) : 0;
+  const pct = Math.max(0, Math.min(100 - left, rawPct));
   const fill = failed ? "fill-bad" : slow ? "fill-warn" : "fill-ok";
   const d = formatDuration(node.duration_ms);
   const tag = tags && tags[node.step_id];
@@ -44,15 +51,15 @@ function Node({ node, slowMs, totalMs, tags, index }) {
         <div className="meta">
           {d.value} {d.unit} · {node.tokens} tokens
         </div>
-        <div className="track" role="img" aria-label={`${pct.toFixed(0)}% of run time`}>
-          <div className={`fill ${fill}`} style={{ width: `${pct}%` }} />
+        <div className="track" role="img" aria-label={`starts at ${left.toFixed(0)}% of the run, lasts ${rawPct.toFixed(0)}% of run time`}>
+          <div className={`fill ${fill}`} style={{ marginLeft: `${left}%`, width: `${pct}%` }} />
         </div>
         {failed && node.error && <pre className="err">{node.error}</pre>}
       </div>
       {node.children.length > 0 && (
         <ul>
           {node.children.map((c, i) => (
-            <Node key={c.step_id} node={c} slowMs={slowMs} totalMs={totalMs} tags={tags} index={index + i + 1} />
+            <Node key={c.step_id} node={c} slowMs={slowMs} totalMs={totalMs} tags={tags} index={index + i + 1} originMs={originMs} />
           ))}
         </ul>
       )}
@@ -65,11 +72,21 @@ export default function TraceTree({ steps, slowMs = 5000, totalMs, tags }) {
     return <p className="empty">This run has no steps.</p>;
   }
   const total = totalMs || Math.max(...steps.map((s) => s.duration_ms), 1);
+  const starts = steps.map((s) => Date.parse(s.started_at)).filter(Number.isFinite);
+  const originMs = starts.length ? Math.min(...starts) : NaN;
+  const ticks = [0, total / 2, total].map((ms) => formatDuration(ms));
   return (
-    <ul className="tree" role="tree">
-      {buildTree(steps).map((n, i) => (
-        <Node key={n.step_id} node={n} slowMs={slowMs} totalMs={total} tags={tags} index={i} />
-      ))}
-    </ul>
+    <>
+      <div className="axis" aria-hidden="true" data-testid="time-axis">
+        {ticks.map((t, i) => (
+          <span key={i}>{t.value === "0" ? "0" : `${t.value} ${t.unit}`}</span>
+        ))}
+      </div>
+      <ul className="tree" role="tree">
+        {buildTree(steps).map((n, i) => (
+          <Node key={n.step_id} node={n} slowMs={slowMs} totalMs={total} tags={tags} index={i} originMs={originMs} />
+        ))}
+      </ul>
+    </>
   );
 }

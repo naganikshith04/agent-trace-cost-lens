@@ -337,6 +337,7 @@ export default function Page() {
                 <li><span className="dot dot-ok" aria-hidden="true" /> ok</li>
                 <li><span className="dot dot-warn" aria-hidden="true" /> slower than {formatDuration(SLOW_MS).value} {formatDuration(SLOW_MS).unit}</li>
                 <li><span className="dot dot-bad" aria-hidden="true" /> failed</li>
+                <li>Bar colour shows status; bar position and length show start and duration within the run</li>
                 <li className="legend-sum">{m.step_count} steps · {lat.value} {lat.unit} wall time</li>
               </ul>
             </section>
