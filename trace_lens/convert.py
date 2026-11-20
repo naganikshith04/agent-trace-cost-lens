@@ -23,8 +23,9 @@ def _ts(value: object, where: str) -> datetime:
         text = text[:-1] + "+00:00"
     if "." in text:  # Ollama emits nanoseconds; datetime accepts at most microseconds
         head, rest = text.split(".", 1)
-        digits = "".join(ch for ch in rest if ch.isdigit())
-        tail = rest[len(digits):]
+        n_digits = len(rest) - len(rest.lstrip("0123456789"))
+        digits = rest[:n_digits]
+        tail = rest[n_digits:]
         text = f"{head}.{digits[:6].ljust(6, '0')}{tail}"
     try:
         ts = datetime.fromisoformat(text)

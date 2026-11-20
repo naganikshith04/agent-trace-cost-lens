@@ -245,14 +245,16 @@ export default function Page() {
               <div className="track thin"><div className="fill fill-ok" style={{ width: `${promptPct}%` }} /></div>
             </Kpi>
             <Kpi label="Latency" value={lat.value} unit={lat.unit} index={3}
-              note={`${formatDuration(m.step_latency_sum_ms).value} ${formatDuration(m.step_latency_sum_ms).unit} summed over steps`}>
-              <div className="track thin">
+              note={`${formatDuration(m.step_latency_sum_ms).value} ${formatDuration(m.step_latency_sum_ms).unit} step sum`}>
+              <div className="track thin"
+                title="Wall-clock run time as a share of the summed step time (nested steps overlap, so the sum can be larger)">
+
                 <div className="fill fill-warn"
                   style={{ width: `${m.step_latency_sum_ms ? Math.min(100, (m.total_latency_ms / m.step_latency_sum_ms) * 100) : 0}%` }} />
               </div>
             </Kpi>
             <Kpi label="Errors" value={m.error_count} bad={m.error_count > 0} index={4}
-              note={`${m.step_count ? Math.round((m.error_count / m.step_count) * 100) : 0}% of steps failed`}>
+              note={`${m.step_count ? Math.round((m.error_count / m.step_count) * 100) : 0}% failed`}>
               <div className="track thin">
                 <div className="fill fill-bad" style={{ width: `${m.step_count ? (m.error_count / m.step_count) * 100 : 0}%` }} />
               </div>
@@ -331,6 +333,12 @@ export default function Page() {
             <section className="tree-col" aria-label="Trace tree">
               <h2>Trace</h2>
               <TraceTree steps={detail.tree} slowMs={SLOW_MS} totalMs={m.total_latency_ms} tags={tags} />
+              <ul className="legend" aria-label="Legend">
+                <li><span className="dot dot-ok" aria-hidden="true" /> ok</li>
+                <li><span className="dot dot-warn" aria-hidden="true" /> slower than {formatDuration(SLOW_MS).value} {formatDuration(SLOW_MS).unit}</li>
+                <li><span className="dot dot-bad" aria-hidden="true" /> failed</li>
+                <li className="legend-sum">{m.step_count} steps · {lat.value} {lat.unit} wall time</li>
+              </ul>
             </section>
           </div>
         </>

@@ -16,9 +16,17 @@ PROMPT = """You classify failures of steps in an LLM agent run.
 Allowed tags:
 - timeout: the step ran out of time or a request timed out
 - tool_error: a tool or external command/API failed
-- invalid_output: the model output was malformed or failed validation
+- invalid_output: the model's reply was empty, truncated, unparseable or failed validation
+  (bad JSON, wrong fields or arguments, free text where structure was expected), even if
+  the message mentions a tool or the output ending early
 - context_overflow: the prompt exceeded the context window or token limit
 - model_unavailable: the model could not be loaded, found or reached
+
+Examples (illustrative):
+- "model reply ended mid-object, cannot decode" -> invalid_output
+- "response did not match the required schema: missing field" -> invalid_output
+- "shell command exited with status 2" -> tool_error
+- "no response within 30 seconds" -> timeout
 
 Step name: {step_name}
 Step kind: {kind}

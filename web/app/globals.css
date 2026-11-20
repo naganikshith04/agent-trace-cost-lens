@@ -2,7 +2,8 @@
   --ink: #04060d;
   --ink-2: #212126;
   --steel-1: #485b73;
-  --steel-2: #6a8aa6;
+  --steel-2: #8fa9c0;
+  --steel-note: #8fa9c0;
   --steel-3: #bacbd9;
   --mint: #7ee0b5;
   --violet: #a78bfa;
@@ -29,7 +30,7 @@ body {
 main { max-width: 1200px; margin: 0 auto; padding: 2rem 1rem 4rem; }
 h1, h2 { margin: 0; font-weight: 600; }
 h1 { font-family: var(--display); font-size: clamp(2rem, 5vw, 3rem); letter-spacing: -0.01em; color: #e6eef5; }
-h2 { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.12em; color: var(--steel-2); margin-bottom: 0.9rem; }
+h2 { font-size: 11px; text-transform: uppercase; letter-spacing: 0.12em; color: #7f9cb6; margin-bottom: 0.9rem; }
 code { font-family: var(--mono); color: var(--mint); }
 
 .hero { display: flex; gap: 1rem; align-items: center; margin-bottom: 1.75rem; }
@@ -73,7 +74,7 @@ code { font-family: var(--mono); color: var(--mint); }
   border: 0; border-radius: 999px; padding: 0.4rem 0.5rem; cursor: pointer; display: flex; flex-direction: column; align-items: center; line-height: 1.15;
   transition: background 0.2s, color 0.2s, box-shadow 0.2s;
 }
-.seg-btn small { font-size: 0.62rem; font-weight: 400; opacity: 0.8; }
+.seg-btn small { font-size: 0.75rem; font-weight: 400; color: var(--steel-note); }
 .seg-btn:hover { color: var(--steel-3); }
 .seg-btn.on { background: var(--raised); color: var(--mint); box-shadow: 3px 3px 8px #02030a, 0 0 12px rgba(126, 224, 181, 0.2); }
 .seg-btn:focus-visible { outline: 2px solid var(--mint); outline-offset: 2px; }
@@ -86,7 +87,7 @@ code { font-family: var(--mono); color: var(--mint); }
 .btn:hover { box-shadow: 0 0 16px rgba(126, 224, 181, 0.5); transform: translateY(-1px); }
 .btn:focus-visible { outline: 2px solid var(--mint); outline-offset: 3px; }
 
-.label { font-size: 11px; text-transform: uppercase; letter-spacing: 0.12em; color: var(--steel-2); }
+.label { font-size: 11px; text-transform: uppercase; letter-spacing: 0.12em; color: #7f9cb6; }
 
 .picker { display: flex; flex-direction: column; gap: 0.4rem; margin-bottom: 1.5rem; max-width: 460px; }
 .select-wrap { position: relative; }
@@ -100,9 +101,10 @@ code { font-family: var(--mono); color: var(--mint); }
 .chev { position: absolute; right: 0.9rem; top: 50%; transform: translateY(-50%); color: var(--steel-2); pointer-events: none; }
 
 .kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1rem; margin-bottom: 1.5rem; }
-.kpi { padding: 1.1rem 1.25rem; display: flex; flex-direction: column; gap: 0.5rem; }
+.kpi { padding: 1.1rem 1.25rem; display: flex; flex-direction: column; gap: 0.5rem; min-height: 11rem; }
+.kpi .note { margin-top: auto; white-space: nowrap; }
 .kpi .value {
-  font-family: var(--display); font-size: 3rem; line-height: 1;
+  font-family: var(--display); font-size: 3.2rem; line-height: 1;
   color: #e6eef5; font-variant-numeric: tabular-nums;
 }
 .kpi-hero .value { font-size: clamp(3.5rem, 9vw, 5rem); }
@@ -119,28 +121,29 @@ code { font-family: var(--mono); color: var(--mint); }
 .fill-violet { background: linear-gradient(90deg, #7c5fe0, var(--violet)); box-shadow: 0 0 10px rgba(167, 139, 250, 0.4); }
 
 .columns { display: flex; flex-direction: column; gap: 1.5rem; align-items: stretch; }
-.tree-col { order: 1; padding: 1.25rem; border-radius: 20px; background: rgba(10, 13, 22, 0.55); box-shadow: var(--inset-shadow); min-width: 0; }
-.side { order: 2; display: grid; grid-template-columns: 1fr; gap: 1.1rem; }
+.tree-col { order: 1; padding: 0; min-width: 0; }
+.side { order: 2; display: grid; grid-template-columns: 1fr; gap: 1.1rem; margin: 0; padding: 0; }
+.legend { list-style: none; margin: 1rem 0 0; padding: 0.7rem 0.2rem 0; border-top: 1px dashed var(--steel-1); display: flex; flex-wrap: wrap; gap: 0.5rem 1.2rem; font-size: 0.8rem; color: var(--steel-2); }
+.legend li { display: flex; align-items: center; gap: 0.4rem; }
+.legend-sum { margin-left: auto; font-variant-numeric: tabular-nums; }
 @media (min-width: 640px) {
   .side { grid-template-columns: 1fr 1fr; }
 }
 @media (min-width: 1024px) {
   .columns { display: grid; grid-template-columns: repeat(12, 1fr); align-items: start; }
-  .side { order: 2; grid-column: 9 / span 4; grid-template-columns: 1fr; margin-top: 0; }
-  .tree-col { order: 1; grid-column: 1 / span 8; position: sticky; top: 1rem; max-height: calc(100vh - 2rem); overflow-y: auto; }
+  .side { order: 2; grid-column: 9 / span 4; grid-template-columns: 1fr; position: sticky; top: 1rem; }
+  .tree-col { order: 1; grid-column: 1 / span 8; }
 }
-.side { margin-top: 2rem; }
 .split-row { display: flex; justify-content: space-between; gap: 0.5rem; font-size: 0.85rem; margin-bottom: 0.5rem; }
 .fail-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 0.6rem; }
 .fail-list li { display: flex; justify-content: space-between; align-items: center; gap: 0.5rem; }
-.note-small { font-size: 0.72rem; color: var(--steel-1); margin: 0.9rem 0 0; }
+.note-small { font-size: 0.75rem; min-height: 12px; color: var(--steel-note); margin: 0.9rem 0 0; }
 .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 .kpi-hero { position: relative; }
 .kpi-hero .value { text-shadow: 0 0 28px rgba(126, 224, 181, 0.4); }
 @media (min-width: 900px) {
-  .kpis { grid-template-columns: repeat(12, 1fr); }
-  .kpis > .kpi { grid-column: span 2; }
-  .kpis > .kpi.kpi-hero { grid-column: span 6; }
+  .kpis { grid-template-columns: 1.6fr 1fr 1fr 1fr; }
+  .kpis > .kpi, .kpis > .kpi.kpi-hero { grid-column: auto; }
 }
 .stack { display: flex; gap: 2px; }
 .seg-fill { height: 100%; animation: grow 0.9s cubic-bezier(0.2, 0.7, 0.2, 1) both; transform-origin: left; }
@@ -215,6 +218,8 @@ code { font-family: var(--mono); color: var(--mint); }
   .kpis { grid-template-columns: 1fr 1fr; }
   .kpi-hero, .kpis > .kpi:nth-child(2) { grid-column: 1 / -1; }
   .kpi { padding: 0.9rem; }
+  .kpi { min-height: 0; }
+  .kpi .note { white-space: normal; }
   .kpi .value { font-size: 2.5rem; }
   .kpi-hero .value { font-size: 3.5rem; }
   .tree-col h2 { margin-top: 0.5rem; }

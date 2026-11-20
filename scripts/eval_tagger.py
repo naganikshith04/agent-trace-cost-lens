@@ -36,7 +36,7 @@ def main() -> int:
           f"keyword={kw_hard['correct']}/{kw_hard['total']}")
     held = load_heldout()
     llm_held = evaluate(make_tagger(client.generate), dataset=held, out_path="eval_heldout_results.json")
-    kw_held = evaluate(keyword_tag, dataset=held)
+    kw_held = evaluate(keyword_tag, dataset=held, out_path="eval_heldout_keyword_results.json")
     print(f"held-out ({len(held)} items): model={llm_held['correct']}/{llm_held['total']} "
           f"keyword={kw_held['correct']}/{kw_held['total']}")
     return 0
