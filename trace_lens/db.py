@@ -11,7 +11,8 @@ CREATE TABLE IF NOT EXISTS runs (
     run_id TEXT PRIMARY KEY,
     model TEXT NOT NULL,
     task TEXT,
-    started_at TEXT NOT NULL
+    started_at TEXT NOT NULL,
+    content_hash TEXT
 );
 CREATE TABLE IF NOT EXISTS steps (
     run_id TEXT NOT NULL REFERENCES runs(run_id) ON DELETE CASCADE,
@@ -41,4 +42,8 @@ def connect(path: str | None = None) -> sqlite3.Connection:
     conn.row_factory = sqlite3.Row
     conn.execute("PRAGMA foreign_keys = ON")
     conn.executescript(DDL)
+    cols = {r["name"] for r in conn.execute("PRAGMA table_info(runs)")}
+    if "content_hash" not in cols:  # databases created before conflict detection
+        conn.execute("ALTER TABLE runs ADD COLUMN content_hash TEXT")
+        conn.commit()
     return conn

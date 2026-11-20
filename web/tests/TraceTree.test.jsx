@@ -1,7 +1,7 @@
 import React from "react";
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
-import TraceTree from "../components/TraceTree.jsx";
+import TraceTree, { formatDuration } from "../components/TraceTree.jsx";
 
 const steps = [
   { step_id: "a", parent_id: null, name: "root", kind: "agent", status: "ok", error: null, duration_ms: 9000, tokens: 0 },
@@ -31,6 +31,17 @@ describe("TraceTree", () => {
   it("respects a configurable threshold", () => {
     render(<TraceTree steps={steps} slowMs={500} />);
     expect(screen.getByTestId("step-b").className).toContain("slow");
+  });
+
+  it("shows a failure tag badge only on failed steps", () => {
+    render(<TraceTree steps={steps} slowMs={5000} tags={{ c: "tool_error", b: "timeout" }} />);
+    expect(screen.getByTestId("tag-c").textContent).toBe("tool_error");
+    expect(screen.queryByTestId("tag-b")).toBeNull();
+  });
+
+  it("formats durations with units", () => {
+    expect(formatDuration(10000)).toEqual({ value: "10.0", unit: "s" });
+    expect(formatDuration(850)).toEqual({ value: "850", unit: "ms" });
   });
 
   it("shows an empty state", () => {

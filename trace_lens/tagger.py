@@ -50,6 +50,27 @@ def parse_tag(text: str) -> str:
     return min(hits)[1] if hits else UNKNOWN
 
 
+# Ordered keyword rules: the first rule with a matching substring wins.
+KEYWORD_RULES: list[tuple[str, tuple[str, ...]]] = [
+    ("context_overflow", ("context window", "context length", "context size", "num_ctx",
+                          "too many tokens", "token limit", "too long", "sequence length")),
+    ("model_unavailable", ("model", "ollama", "inference host", "loading")),
+    ("timeout", ("timed out", "timeout", "deadline", "time limit", "budget")),
+    ("invalid_output", ("json", "schema", "parse", "validation", "malformed", "empty response")),
+    ("tool_error", ("tool", "exit", "status", "permission", "not found", "no such", "refused",
+                    "error")),
+]
+
+
+def keyword_tag(item: dict) -> str:
+    """Offline baseline: substring rules over the error text only (no LLM)."""
+    text = str(item.get("error", "")).lower()
+    for tag, words in KEYWORD_RULES:
+        if any(w in text for w in words):
+            return tag
+    return UNKNOWN
+
+
 def make_tagger(generate: Callable[[str], str]) -> Callable[[dict], str]:
     """Build a tagging function from any text-generation callable (real or mocked)."""
 

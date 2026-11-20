@@ -11,8 +11,8 @@ import httpx
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from trace_lens.evaluation import evaluate  # noqa: E402
-from trace_lens.tagger import OllamaClient, make_tagger  # noqa: E402
+from trace_lens.evaluation import evaluate, load_hard_cases  # noqa: E402
+from trace_lens.tagger import OllamaClient, keyword_tag, make_tagger  # noqa: E402
 
 
 def main() -> int:
@@ -26,6 +26,14 @@ def main() -> int:
     print(f"model={client.model} accuracy={result['accuracy']:.3f} "
           f"({result['correct']}/{result['total']})")
     print("details written to eval_results.json")
+    base = evaluate(keyword_tag)
+    print(f"keyword baseline (40 items): accuracy={base['accuracy']:.3f} "
+          f"({base['correct']}/{base['total']})")
+    hard = load_hard_cases()
+    llm_hard = evaluate(make_tagger(client.generate), dataset=hard, out_path="eval_hard_results.json")
+    kw_hard = evaluate(keyword_tag, dataset=hard)
+    print(f"hard cases ({len(hard)} items): model={llm_hard['correct']}/{llm_hard['total']} "
+          f"keyword={kw_hard['correct']}/{kw_hard['total']}")
     return 0
 
 

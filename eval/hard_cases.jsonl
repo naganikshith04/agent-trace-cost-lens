@@ -1,0 +1,8 @@
+{"id": "h01", "step_name": "chat", "kind": "llm", "error": "httpx.ReadTimeout: timed out waiting for model server to respond", "label": "timeout"}
+{"id": "h02", "step_name": "generate", "kind": "llm", "error": "error: llama runner process has terminated: exit status 2", "label": "model_unavailable"}
+{"id": "h03", "step_name": "call_api", "kind": "tool", "error": "requests.exceptions.ConnectionError: HTTPConnectionPool(host='api.internal', port=80): Max retries exceeded", "label": "tool_error"}
+{"id": "h04", "step_name": "extract", "kind": "llm", "error": "pydantic ValidationError: 2 validation errors for Invoice", "label": "invalid_output"}
+{"id": "h05", "step_name": "chat", "kind": "llm", "error": "the input exceeds the maximum number of tokens allowed (8192)", "label": "context_overflow"}
+{"id": "h06", "step_name": "run_code", "kind": "tool", "error": "sandbox: execution exceeded 10s limit and was terminated", "label": "timeout"}
+{"id": "h07", "step_name": "tool_select", "kind": "llm", "error": "model returned tool name 'serach' which is not a registered tool", "label": "invalid_output"}
+{"id": "h08", "step_name": "load", "kind": "llm", "error": "error loading model: unable to allocate CUDA buffer", "label": "model_unavailable"}

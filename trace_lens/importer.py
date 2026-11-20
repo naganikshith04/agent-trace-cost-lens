@@ -1,6 +1,7 @@
 """Import v1 trace JSON into SQLite, atomically and idempotently."""
 from __future__ import annotations
 
+import hashlib
 import json
 import sqlite3
 from pathlib import Path
@@ -21,19 +22,41 @@ def load_trace_file(path: str | Path) -> dict:
         raise TraceValidationError(f"malformed JSON: {exc}") from exc
 
 
-def import_trace(conn: sqlite3.Connection, doc: object) -> bool:
-    """Validate and store a trace. Returns True if inserted, False if the run already existed.
+class TraceConflictError(TraceValidationError):
+    """A run_id is already stored with different content."""
 
-    Validation happens before any write; the insert runs in one transaction.
+
+def content_hash(doc: dict) -> str:
+    canonical = json.dumps(doc, sort_keys=True, separators=(",", ":"), ensure_ascii=True)
+    return hashlib.sha256(canonical.encode("utf-8")).hexdigest()
+
+
+def import_trace(conn: sqlite3.Connection, doc: object) -> bool:
+    """Validate and store a trace. Returns True if inserted, False if an identical run exists.
+
+    Raises TraceConflictError if the run_id exists with different content, so the caller
+    knows the stored data is stale. Validation happens before any write; the insert runs
+    in one transaction.
     """
     validate_trace(doc)
     assert isinstance(doc, dict)
-    if conn.execute("SELECT 1 FROM runs WHERE run_id = ?", (doc["run_id"],)).fetchone():
+    digest = content_hash(doc)
+    row = conn.execute(
+        "SELECT content_hash FROM runs WHERE run_id = ?", (doc["run_id"],)
+    ).fetchone()
+    if row is not None:
+        stored = row[0]
+        if stored is not None and stored != digest:
+            raise TraceConflictError(
+                f"run {doc['run_id']!r} is already stored with different content; "
+                "stored data is stale (use a new run_id or delete the old run)"
+            )
         return False
     with conn:
         conn.execute(
-            "INSERT INTO runs (run_id, model, task, started_at) VALUES (?, ?, ?, ?)",
-            (doc["run_id"], doc["model"], doc.get("task"), doc["started_at"]),
+            "INSERT INTO runs (run_id, model, task, started_at, content_hash)"
+            " VALUES (?, ?, ?, ?, ?)",
+            (doc["run_id"], doc["model"], doc.get("task"), doc["started_at"], digest),
         )
         for seq, s in enumerate(doc["steps"]):
             start = parse_ts(s["started_at"], "step")

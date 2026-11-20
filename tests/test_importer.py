@@ -28,6 +28,16 @@ def test_reimport_does_not_duplicate(conn):
     assert count(conn, "steps") == 4
 
 
+def test_reimport_with_different_content_raises(conn, sample_doc):
+    from trace_lens.importer import TraceConflictError
+
+    assert import_trace(conn, sample_doc) is True
+    sample_doc["steps"][0]["prompt_tokens"] += 1
+    with pytest.raises(TraceConflictError, match="different content"):
+        import_trace(conn, sample_doc)
+    assert count(conn, "runs") == 1
+
+
 def _assert_rejected_unchanged(conn, doc):
     with pytest.raises(TraceValidationError):
         import_trace(conn, doc)

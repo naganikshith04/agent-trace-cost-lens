@@ -28,6 +28,18 @@ def test_invalid_run_id_rejected(client):
     assert client.get("/runs/bad$id/metrics").status_code == 422
 
 
+def test_tags_endpoint_tags_failed_steps_only(client):
+    resp = client.get("/runs/run-001/tags")
+    assert resp.status_code == 200
+    tags = resp.json()
+    assert [t["step_id"] for t in tags] == ["s3"]
+    assert tags[0]["method"] == "keyword"
+    assert tags[0]["tag"] in {"tool_error", "model_unavailable", "timeout", "invalid_output",
+                              "context_overflow", "unknown"}
+    assert client.get("/runs/nope/tags").status_code == 404
+    assert client.get("/runs/run-001/tags?method=bogus").status_code == 422
+
+
 def test_list_runs_and_tree(client):
     runs = client.get("/runs").json()
     assert [r["run_id"] for r in runs] == ["run-001"]

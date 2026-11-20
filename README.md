@@ -48,10 +48,11 @@ Validation runs fully before any write, and inserts happen in one transaction, s
 
 ## Beyond the original
 
-The inspiration was a Show HN post about Faros Desktop, a local app for viewing AI traces (not verified here; see the original post). This project goes in a different direction and aims to be more useful for people running their own local agents:
+This project aims to be useful for people running their own local agents:
 
-- **Evaluated failure tagger**: failed steps can be classified into five causes by a local Ollama model, and the tagger ships with a reproducible accuracy evaluation on 40 labeled cases rather than unmeasured claims.
-- **Strict, documented schema** with atomic, idempotent import: re-importing is safe and invalid files are rejected with a clear message and no partial writes.
+- **Evaluated failure tagger**: failed steps are classified into five causes and shown as a badge in the trace tree (`GET /runs/{id}/tags`, offline keyword rules by default, `?method=llm` for a local Ollama model). The tagger ships with a reproducible accuracy evaluation on 40 labeled cases and a keyword baseline rather than unmeasured claims.
+- **Visual trace analysis**: waterfall bars per step, token share per step and KPI numerals, with loading, empty and error states.
+- **Strict, documented schema** with atomic, idempotent import: re-importing identical content is a no-op, re-importing a run_id with different content is reported as a conflict, and invalid files are rejected with a clear message and no partial writes.
 - **Slow-step flagging** with a configurable threshold directly in the trace tree, not only totals.
 - **Fully local and free**: SQLite, a local Ollama model, no account or paid API.
 
@@ -59,7 +60,27 @@ The inspiration was a Show HN post about Faros Desktop, a local app for viewing 
 
 The tagger (`trace_lens/tagger.py`) sends the step name, kind and error message to a local Ollama model and maps the reply to one of: `timeout`, `tool_error`, `invalid_output`, `context_overflow`, `model_unavailable`. The harness (`trace_lens/evaluation.py`) runs it over exactly 40 hand-written labeled examples in `eval/labeled_traces.jsonl` (8 per tag) and reports tag accuracy = correct predictions / 40, plus per-item predictions in `eval_results.json`.
 
-The labeled examples are synthetic and written by hand; they are not real production traces. Results are added after the first real run; none are reported yet. To reproduce (needs a running Ollama with the model pulled):
+### Result
+
+Measured run with model `llama3.2`: **accuracy 0.825 (33/40)**, details in `eval_results.json`.
+
+| gold tag | correct |
+| --- | --- |
+| timeout | 7/8 |
+| tool_error | 7/8 |
+| invalid_output | 4/8 |
+| context_overflow | 8/8 |
+| model_unavailable | 7/8 |
+
+**Limit of this number:** the 40 items are hand-written, synthetic error strings, and the tagger only sees the step name, kind and error text. The 82.5% therefore measures how well the model reads invented messages, not how well it diagnoses real agent failures.
+
+The 7 misses: `invalid_output` is the weak class (4 of 8 wrong: two tagged `timeout`, two tagged `tool_error`; e.g. "empty response returned by model" and "truncated JSON: unexpected end of output" read as timeouts, "could not parse tool call" and "arguments do not match the function signature" read as tool errors). The other three: a timeout ("context deadline exceeded while streaming tokens") tagged `context_overflow`, a permission error tagged `timeout`, and a model-load failure ("connection refused: is the Ollama server running?") tagged `tool_error`. In practice, malformed model output that mentions tools or truncation gets blamed on the tool or on time, so treat `invalid_output` tags as less reliable.
+
+### Baseline and hard cases
+
+`keyword_tag` in `trace_lens/tagger.py` is an offline keyword-rule baseline over the same error text. `scripts/eval_tagger.py` prints its accuracy on the 40 items next to the model's, and also runs both on `eval/hard_cases.jsonl`, 8 further ambiguous, real-world-style error strings (e.g. wrapped library exceptions) kept separate from the 40. No baseline or hard-case numbers are reported here because only the 40-item model run above has been measured; run the script to get them. If the keyword baseline comes close to the model, that tells you the 40 items are mostly keyword matching.
+
+To reproduce (needs a running Ollama with the model pulled):
 
 ```bash
 OLLAMA_MODEL=llama3.2 python scripts/eval_tagger.py
@@ -73,5 +94,6 @@ Note: step error text is untrusted and is interpolated into the tagger prompt, s
 
 - Note that only one JSON format is supported in v1 (`ollama-agent-trace` version `1`); other formats are rejected.
 - Steps must list parents before children; timestamps need a timezone.
-- The failure tagger is a Python API plus evaluation script; it is not yet wired into the API or UI.
+- The UI badge uses the offline keyword tagger (`/runs/{id}/tags`); the Ollama tagger is available via `?method=llm` but is not called by the UI. Tags are computed on request, not stored.
+- Re-importing a run_id with different content raises a conflict instead of overwriting; runs imported before this check have no stored hash and are skipped silently.
 - No authentication; intended for local use only.

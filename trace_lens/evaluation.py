@@ -11,18 +11,31 @@ DATASET_PATH = Path(__file__).resolve().parent.parent / "eval" / "labeled_traces
 EXPECTED_SIZE = 40
 
 
-def load_dataset(path: str | Path = DATASET_PATH) -> list[dict]:
+HARD_CASES_PATH = Path(__file__).resolve().parent.parent / "eval" / "hard_cases.jsonl"
+
+
+def _read_items(path: str | Path) -> list[dict]:
     items = [
         json.loads(line)
         for line in Path(path).read_text(encoding="utf-8").splitlines()
         if line.strip()
     ]
-    if len(items) != EXPECTED_SIZE:
-        raise ValueError(f"expected {EXPECTED_SIZE} labeled traces, found {len(items)}")
     for it in items:
         if not it.get("label") or it["label"] not in TAGS:
             raise ValueError(f"item {it.get('id')!r} has missing or unknown label")
     return items
+
+
+def load_dataset(path: str | Path = DATASET_PATH) -> list[dict]:
+    items = _read_items(path)
+    if len(items) != EXPECTED_SIZE:
+        raise ValueError(f"expected {EXPECTED_SIZE} labeled traces, found {len(items)}")
+    return items
+
+
+def load_hard_cases(path: str | Path = HARD_CASES_PATH) -> list[dict]:
+    """Ambiguous / real-world-style error strings, kept apart from the 40 main items."""
+    return _read_items(path)
 
 
 def evaluate(tag_fn: Callable[[dict], str], dataset: list[dict] | None = None,

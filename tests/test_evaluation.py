@@ -30,6 +30,19 @@ def test_accuracy_is_correct_over_40(tmp_path):
     assert len(result["predictions"]) == 40
 
 
+def test_keyword_baseline_runs_offline():
+    from trace_lens.evaluation import load_hard_cases
+    from trace_lens.tagger import keyword_tag
+
+    result = evaluate(keyword_tag)
+    assert result["total"] == 40
+    assert 0 <= result["accuracy"] <= 1
+    assert keyword_tag({"error": "prompt is too long: 9120 tokens"}) == "context_overflow"
+    assert keyword_tag({"error": "zzz"}) == "unknown"
+    hard = load_hard_cases()
+    assert len(hard) == 8 and {h["id"] for h in hard}.isdisjoint(i["id"] for i in load_dataset())
+
+
 def test_parse_tag():
     assert parse_tag("  Timeout.\n") == "timeout"
     assert parse_tag("I think it is context_overflow") == "context_overflow"

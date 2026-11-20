@@ -1,11 +1,12 @@
 """FastAPI app exposing run metrics."""
 from __future__ import annotations
 
-from fastapi import FastAPI, HTTPException, Path
+from fastapi import FastAPI, HTTPException, Path, Query
 from fastapi.middleware.cors import CORSMiddleware
 
 from . import metrics
 from .db import connect, get_db_path
+from .tagger import keyword_tag
 
 RUN_ID_PATTERN = r"^[A-Za-z0-9._:-]{1,128}$"
 
@@ -52,6 +53,34 @@ def create_app(db_path: str | None = None) -> FastAPI:
             return metrics.run_tree(conn, run_id)
         finally:
             conn.close()
+
+    @app.get("/runs/{run_id}/tags")
+    def get_tags(
+        run_id: str = Path(pattern=RUN_ID_PATTERN),
+        method: str = Query("keyword", pattern="^(keyword|llm)$"),
+    ) -> list[dict]:
+        """Failure tag for each failed step. `keyword` is offline; `llm` asks local Ollama."""
+        conn = connect(path)
+        try:
+            _require(conn, run_id)
+            failed = [s for s in metrics.run_tree(conn, run_id) if s["status"] == "error"]
+        finally:
+            conn.close()
+        if method == "llm":
+            from .tagger import OllamaClient, make_tagger
+
+            tag_fn = make_tagger(OllamaClient().generate)
+        else:
+            tag_fn = keyword_tag
+        out = []
+        for s in failed:
+            item = {"step_name": s["name"], "kind": s["kind"], "error": s["error"] or ""}
+            try:
+                tag = tag_fn(item)
+            except Exception as exc:  # Ollama down, bad reply, etc.
+                raise HTTPException(status_code=502, detail=f"tagger failed: {exc}") from exc
+            out.append({"step_id": s["step_id"], "tag": tag, "method": method})
+        return out
 
     return app
 
